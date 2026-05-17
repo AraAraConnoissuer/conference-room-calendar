@@ -1,0 +1,405 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AUP school conference room reservation calendar">
+  <title>AUP Conference Room Calendar</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-brand">
+      <div class="brand-mark">AUP</div>
+      <div>
+        <h1>Conference Room Calendar</h1>
+        <p>Adventist University of the Philippines</p>
+      </div>
+    </div>
+
+    <div class="auth-layout">
+      <article class="auth-card">
+        <span class="section-label">Login</span>
+        <h2>Reserve the school conference room</h2>
+        <p>Sign in with your student number and password.</p>
+        <form id="loginForm" class="auth-form">
+          <label>Student number
+            <input type="text" id="loginStudentNumber" required autocomplete="username" placeholder="2026-00001">
+          </label>
+          <label>Password
+            <input type="password" id="loginPassword" required autocomplete="current-password">
+          </label>
+          <button type="submit" class="primary-button">Login</button>
+          <button type="button" class="text-button auth-link-button" id="forgotPasswordButton">Forgot password?</button>
+        </form>
+      </article>
+
+      <article class="auth-card">
+        <span class="section-label">Create Account</span>
+        <h2>New student account</h2>
+        <p>Student accounts are available immediately. Admin access requires approval by an existing admin.</p>
+        <form id="registerForm" class="auth-form">
+          <label>Student number
+            <input type="text" id="registerStudentNumber" required autocomplete="username" placeholder="2026-00001">
+          </label>
+          <label>Password
+            <input type="password" id="registerPassword" required minlength="6" autocomplete="new-password">
+          </label>
+          <label>Full name
+            <input type="text" id="registerFullName" required autocomplete="name">
+          </label>
+          <label>Department
+            <input type="text" id="registerDepartment" placeholder="Optional">
+          </label>
+          <label>Account type
+            <select id="registerAccountType">
+              <option value="student">Student</option>
+              <option value="admin">Request admin access</option>
+            </select>
+          </label>
+          <button type="submit" class="primary-button">Create account</button>
+        </form>
+      </article>
+    </div>
+
+    <p class="auth-footnote" id="authSetupNotice">
+      Add your Supabase URL and anon key in supabaseClient.js before using real accounts.
+    </p>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
+    <header class="topbar">
+      <div class="brand-area">
+        <button class="icon-button mobile-only" id="mobileMenuButton" aria-label="Open menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="brand-mark">AUP</div>
+        <div>
+          <h1>Conference Room</h1>
+          <p>Adventist University of the Philippines</p>
+        </div>
+      </div>
+
+      <nav class="calendar-nav" aria-label="Calendar navigation">
+        <button class="toolbar-button" id="todayButton">Today</button>
+        <button class="icon-button" id="prevButton" aria-label="Previous period">&#8249;</button>
+        <button class="icon-button" id="nextButton" aria-label="Next period">&#8250;</button>
+        <h2 id="calendarTitle">Calendar</h2>
+      </nav>
+
+      <div class="toolbar-actions">
+        <div class="search-wrap" id="searchWrap">
+          <button class="icon-button mobile-search-button" id="searchToggle" aria-label="Open search">&#128269;</button>
+          <input type="search" id="searchInput" placeholder="Search reservations" autocomplete="off">
+        </div>
+        <select id="viewSelector" class="view-selector" aria-label="Calendar view">
+          <option value="timeGridDay">Day</option>
+          <option value="timeGridWeek" selected>Week</option>
+          <option value="dayGridMonth">Month</option>
+          <option value="multiMonthYear">Year</option>
+          <option value="listWeek">Agenda</option>
+        </select>
+        <button class="icon-button print-button" id="printButton" aria-label="Print schedule">&#9113;</button>
+        <button class="profile-pill" id="profileButton" type="button">
+          <span id="profileInitials">AU</span>
+          <strong id="profileName">Guest</strong>
+        </button>
+      </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar" aria-label="Calendar sidebar">
+      <button class="create-button" id="createReservationButton">+ Create</button>
+
+      <section class="sidebar-section availability-card">
+        <span class="section-label">School Conference Room</span>
+        <strong id="availabilityStatus">Checking availability...</strong>
+        <p id="availabilityDetail">Reservations are automatically confirmed when the slot is free.</p>
+      </section>
+
+      <section class="sidebar-section">
+        <div class="mini-calendar-header">
+          <button class="icon-button" id="miniPrevButton" aria-label="Previous month">&#8249;</button>
+          <strong id="miniCalendarTitle">Month</strong>
+          <button class="icon-button" id="miniNextButton" aria-label="Next month">&#8250;</button>
+        </div>
+        <div id="miniCalendar" class="mini-calendar"></div>
+      </section>
+
+      <section class="sidebar-section">
+        <span class="section-label">Filters</span>
+        <label class="check-row">
+          <input type="checkbox" id="myReservationsFilter">
+          <span>My reservations</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" class="status-filter" value="confirmed" checked>
+          <span class="legend-dot confirmed"></span>
+          <span>Confirmed</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" class="status-filter" value="cancelled" checked>
+          <span class="legend-dot cancelled"></span>
+          <span>Cancelled</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" class="status-filter" value="completed" checked>
+          <span class="legend-dot completed"></span>
+          <span>Completed</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" class="status-filter" value="blocked" checked>
+          <span class="legend-dot blocked"></span>
+          <span>Blocked</span>
+        </label>
+      </section>
+
+      <section class="sidebar-section">
+        <span class="section-label">Account</span>
+        <button class="secondary-button admin-only" id="adminRequestsButton">Admin Requests</button>
+        <button class="secondary-button admin-only" id="passwordResetRequestsButton">Password Resets</button>
+        <button class="secondary-button" id="activityLogButton">Activity Log</button>
+        <button class="secondary-button admin-only" id="blockTimeButton">Block Time</button>
+        <button class="text-button" id="logoutButton">Sign out</button>
+      </section>
+    </aside>
+
+    <main class="calendar-panel">
+      <div id="calendar"></div>
+    </main>
+
+    <div class="mobile-scrim" id="mobileScrim"></div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+
+  <dialog class="modal forgot-password-modal" id="forgotPasswordModal">
+    <form method="dialog" class="modal-card" id="forgotPasswordForm">
+      <div class="modal-header">
+        <div>
+          <h3>Forgot Password</h3>
+          <p>Submit a request. An admin will verify it and provide a temporary password.</p>
+        </div>
+        <button type="button" class="icon-button" id="forgotPasswordCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="form-grid">
+        <label>Student number
+          <input type="text" id="forgotStudentNumber" required placeholder="2026-00001">
+        </label>
+        <label>Full name
+          <input type="text" id="forgotFullName" required>
+        </label>
+        <label>Department
+          <input type="text" id="forgotDepartment" placeholder="Optional">
+        </label>
+        <label class="full-span">Message for admin
+          <textarea id="forgotMessage" rows="3" placeholder="Optional details to help verify your account"></textarea>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="primary-button">Submit request</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal change-password-modal" id="changePasswordModal">
+    <form method="dialog" class="modal-card" id="changePasswordForm">
+      <div class="modal-header">
+        <div>
+          <h3>Change Temporary Password</h3>
+          <p>Before using the calendar, create a new password for your account.</p>
+        </div>
+      </div>
+      <div class="form-grid">
+        <label>New password
+          <input type="password" id="newPassword" required minlength="6" autocomplete="new-password">
+        </label>
+        <label>Confirm password
+          <input type="password" id="confirmNewPassword" required minlength="6" autocomplete="new-password">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="primary-button">Update password</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal reservation-modal" id="reservationModal">
+    <form method="dialog" class="modal-card" id="reservationForm">
+      <div class="modal-header">
+        <div>
+          <h3 id="reservationModalTitle">Create Reservation</h3>
+          <p>Every booking is for the AUP school conference room.</p>
+        </div>
+        <button type="button" class="icon-button" id="reservationCloseButton" aria-label="Close">&times;</button>
+      </div>
+
+      <input type="hidden" id="reservationId">
+      <div class="form-grid">
+        <label class="full-span">Meeting title
+          <input type="text" id="reservationTitle" required maxlength="120">
+        </label>
+        <label>Date
+          <input type="date" id="reservationDate" required>
+        </label>
+        <label>Start time
+          <input type="time" id="reservationStart" required>
+        </label>
+        <label>End time
+          <input type="time" id="reservationEnd" required>
+        </label>
+        <label>Status
+          <select id="reservationStatus">
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+        <label class="admin-only">Reservation type
+          <select id="reservationType">
+            <option value="reservation">Reservation</option>
+            <option value="blocked">Blocked time</option>
+          </select>
+        </label>
+        <label>Organization / group
+          <input type="text" id="reservationOrganization" maxlength="120">
+        </label>
+        <label>People involved
+          <input type="text" id="reservationPeople" maxlength="180">
+        </label>
+        <label class="full-span">Purpose of meeting
+          <textarea id="reservationPurpose" rows="3" required></textarea>
+        </label>
+        <label class="full-span">Optional notes
+          <textarea id="reservationNotes" rows="3"></textarea>
+        </label>
+        <label>Reserved by
+          <input type="text" id="reservationReservedBy" readonly>
+        </label>
+      </div>
+
+      <div class="modal-actions split-actions">
+        <button type="button" class="danger-button" id="deleteReservationButton">Cancel/Delete</button>
+        <div>
+          <button type="button" class="secondary-button" id="copyReservationButton">Copy details</button>
+          <button type="submit" class="primary-button" id="saveReservationButton">Save</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal details-modal" id="detailsModal">
+    <article class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="detailsTitle">Reservation Details</h3>
+          <p id="detailsMeta">School conference room</p>
+        </div>
+        <button class="icon-button" id="detailsCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <dl class="details-list" id="detailsList"></dl>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="detailsCopyButton">Copy details</button>
+        <button type="button" class="primary-button" id="detailsEditButton">Edit</button>
+      </div>
+    </article>
+  </dialog>
+
+  <dialog class="modal conflict-modal" id="conflictModal">
+    <article class="modal-card conflict-card">
+      <div class="modal-header">
+        <div>
+          <h3>Schedule Conflict Detected</h3>
+          <p>Please choose another available time.</p>
+        </div>
+        <button class="icon-button" id="conflictCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="conflict-body" id="conflictBody"></div>
+      <div class="modal-actions">
+        <button type="button" class="primary-button" id="conflictOkButton">Choose another time</button>
+      </div>
+    </article>
+  </dialog>
+
+  <dialog class="modal confirm-modal" id="confirmModal">
+    <article class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3>Confirm cancellation</h3>
+          <p>This will mark the reservation as cancelled.</p>
+        </div>
+        <button class="icon-button" id="confirmCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <p id="confirmMessage">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="confirmNoButton">Keep reservation</button>
+        <button type="button" class="danger-button" id="confirmYesButton">Cancel reservation</button>
+      </div>
+    </article>
+  </dialog>
+
+  <dialog class="modal log-modal" id="activityLogModal">
+    <article class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Reservation History</h3>
+          <p>Admins can review recent activity for the conference room.</p>
+        </div>
+        <button class="icon-button" id="activityCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="activity-list" id="activityList"></div>
+    </article>
+  </dialog>
+
+  <dialog class="modal admin-requests-modal" id="adminRequestsModal">
+    <article class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Admin Access Requests</h3>
+          <p>Only current admins can approve another admin account.</p>
+        </div>
+        <button class="icon-button" id="adminRequestsCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="activity-list" id="adminRequestsList"></div>
+    </article>
+  </dialog>
+
+  <dialog class="modal password-reset-requests-modal" id="passwordResetRequestsModal">
+    <article class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Password Reset Requests</h3>
+          <p>Approve a request to generate a one-time temporary password.</p>
+        </div>
+        <button class="icon-button" id="passwordResetRequestsCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="activity-list" id="passwordResetRequestsList"></div>
+    </article>
+  </dialog>
+
+  <dialog class="modal temp-password-modal" id="temporaryPasswordModal">
+    <article class="modal-card conflict-card">
+      <div class="modal-header">
+        <div>
+          <h3>Temporary Password</h3>
+          <p>Copy it now. It is not stored or shown again.</p>
+        </div>
+        <button class="icon-button" id="temporaryPasswordCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="temporary-password-box" id="temporaryPasswordValue"></div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="copyTemporaryPasswordButton">Copy password</button>
+        <button type="button" class="primary-button" id="temporaryPasswordDoneButton">Done</button>
+      </div>
+    </article>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="supabaseClient.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
