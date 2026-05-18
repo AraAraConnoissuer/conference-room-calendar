@@ -1,6 +1,9 @@
 const SCHOOL_HOURS = { start: '08:00', end: '17:00' };
 const MIN_ADVANCE_HOURS = 24;
+const PASSWORD_UPDATE_TIMEOUT_MS = 15000;
 const AUTH_EMAIL_DOMAIN = 'aup.edu.ph';
+const MOBILE_BREAKPOINT = 768;
+const ACTIVE_STATUSES = ['confirmed', 'completed', 'blocked'];
 const SCHEDULE_STATE_KEYS = [
   'reservations',
   'blockedTimes',
@@ -29,7 +32,7 @@ const state = {
   searchTerm: '',
   filters: {
     mine: false,
-    statuses: new Set(['confirmed', 'completed', 'blocked'])
+    statuses: new Set(ACTIVE_STATUSES)
   }
 };
 
@@ -200,12 +203,7 @@ function bindStaticEvents() {
     refreshCalendar();
   });
   document.querySelectorAll('.status-filter').forEach((checkbox) => {
-    checkbox.addEventListener('change', () => {
-      state.filters.statuses = new Set(
-        [...document.querySelectorAll('.status-filter:checked')].map((input) => input.value)
-      );
-      refreshCalendar();
-    });
+    checkbox.addEventListener('change', updateStatusFilters);
   });
   els.adminRequestsButton.addEventListener('click', openAdminRequests);
   els.adminRequestsCloseButton.addEventListener('click', () => els.adminRequestsModal.close());
@@ -235,13 +233,17 @@ async function initializeSession() {
     state.profile = await fetchProfile(state.currentUser.id);
   }
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
-    setTimeout(async () => {
-      state.currentUser = session?.user ?? null;
-      state.profile = state.currentUser ? await fetchProfile(state.currentUser.id) : null;
-      await renderAuthState();
-    }, 0);
-  });
+  supabaseClient.auth.onAuthStateChange((_event, session) => deferAuthRefresh(session));
+}
+
+function deferAuthRefresh(session) {
+  setTimeout(() => refreshAuthState(session), 0);
+}
+
+async function refreshAuthState(session) {
+  state.currentUser = session?.user ?? null;
+  state.profile = state.currentUser ? await fetchProfile(state.currentUser.id) : null;
+  await renderAuthState();
 }
 
 async function renderAuthState() {
@@ -335,7 +337,7 @@ function initializeCalendar() {
       state.calendar.unselect();
     },
     dateClick: (info) => {
-      if (window.innerWidth > 768 || info.allDay) return;
+      if (window.innerWidth > MOBILE_BREAKPOINT || info.allDay) return;
       if (!requireReservationAccount()) return;
       const start = roundToNextHalfHour(info.date);
       const end = addMinutes(start, 60);
@@ -458,7 +460,7 @@ function changeCalendarView(viewName) {
 function handleResize() {
   if (!state.calendar) return;
   const preferredView = getResponsiveDefaultView();
-  if (window.innerWidth <= 768 && state.calendar.view.type === 'timeGridWeek') {
+  if (window.innerWidth <= MOBILE_BREAKPOINT && state.calendar.view.type === 'timeGridWeek') {
     state.calendar.changeView(preferredView);
     els.viewSelector.value = preferredView;
   }
@@ -916,7 +918,7 @@ async function changeTemporaryPassword(event) {
         password,
         data: { must_change_password: false }
       }),
-      15000,
+      PASSWORD_UPDATE_TIMEOUT_MS,
       'Password update took too long. Please check your connection and try again.'
     );
 
@@ -945,6 +947,13 @@ function setChangePasswordBusy(isBusy) {
 function setChangePasswordMessage(message, type = '') {
   els.changePasswordMessage.textContent = message;
   els.changePasswordMessage.className = type ? `form-message ${type}` : 'form-message';
+}
+
+function updateStatusFilters() {
+  state.filters.statuses = new Set(
+    [...document.querySelectorAll('.status-filter:checked')].map((input) => input.value)
+  );
+  refreshCalendar();
 }
 
 async function logoutUser() {
@@ -1273,9 +1282,7 @@ function defaultCreateRange() {
 }
 
 function getResponsiveDefaultView() {
-  if (window.innerWidth <= 480) return 'timeGridDay';
-  if (window.innerWidth <= 768) return 'timeGridDay';
-  return 'timeGridWeek';
+  return window.innerWidth <= MOBILE_BREAKPOINT ? 'timeGridDay' : 'timeGridWeek';
 }
 
 function matchesSearch(record, term) {
