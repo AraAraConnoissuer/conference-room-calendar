@@ -58,7 +58,7 @@ create table if not exists public.reservations (
   notes text,
   created_by uuid references public.profiles(id) on delete set null,
   reserved_by_name text,
-  status text not null default 'confirmed' check (status in ('confirmed', 'cancelled', 'completed')),
+  status text not null default 'confirmed' check (status in ('confirmed', 'completed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint reservations_time_order check (start_time < end_time)
@@ -242,7 +242,6 @@ begin
     values (
       new.id,
       case
-        when old.status <> 'cancelled' and new.status = 'cancelled' then 'cancelled'
         when old.start_time <> new.start_time or old.end_time <> new.end_time then 'moved'
         else 'edited'
       end,

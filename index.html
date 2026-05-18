@@ -7,7 +7,7 @@
   <title>AUP Conference Room Calendar</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260518-2">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
@@ -141,11 +141,6 @@
           <span>Confirmed</span>
         </label>
         <label class="check-row">
-          <input type="checkbox" class="status-filter" value="cancelled" checked>
-          <span class="legend-dot cancelled"></span>
-          <span>Cancelled</span>
-        </label>
-        <label class="check-row">
           <input type="checkbox" class="status-filter" value="completed" checked>
           <span class="legend-dot completed"></span>
           <span>Completed</span>
@@ -254,7 +249,6 @@
         <label>Status
           <select id="reservationStatus">
             <option value="confirmed">Confirmed</option>
-            <option value="cancelled">Cancelled</option>
             <option value="completed">Completed</option>
           </select>
         </label>
@@ -400,6 +394,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="supabaseClient.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=20260518-2"></script>
 </body>
 </html>

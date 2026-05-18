@@ -29,7 +29,7 @@ const state = {
   searchTerm: '',
   filters: {
     mine: false,
-    statuses: new Set(['confirmed', 'cancelled', 'completed', 'blocked'])
+    statuses: new Set(['confirmed', 'completed', 'blocked'])
   }
 };
 

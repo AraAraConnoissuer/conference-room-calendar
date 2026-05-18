@@ -515,7 +515,6 @@ button {
   background: var(--success);
 }
 
-.legend-dot.cancelled,
 .legend-dot.completed {
   background: #9CA3AF;
 }
@@ -590,11 +589,6 @@ button {
 
 .event-confirmed {
   background: var(--success) !important;
-  color: #fff !important;
-}
-
-.event-cancelled {
-  background: #9CA3AF !important;
   color: #fff !important;
 }
 
@@ -1018,6 +1012,36 @@ body.is-admin label.admin-only {
     min-width: 100vw;
     overflow-y: auto;
     padding: 18px;
+  }
+
+  .modal.log-modal,
+  .modal.admin-requests-modal,
+  .modal.password-reset-requests-modal {
+    border-radius: 0;
+    height: 100vh;
+    height: 100dvh;
+    inset: 0;
+    margin: 0 !important;
+    max-height: 100vh;
+    max-height: 100dvh;
+    max-width: 100vw;
+    min-height: 100vh;
+    min-height: 100dvh;
+    position: fixed;
+    width: 100vw;
+  }
+
+  .modal.log-modal .wide-modal,
+  .modal.admin-requests-modal .wide-modal,
+  .modal.password-reset-requests-modal .wide-modal {
+    border-radius: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100vw;
   }
 
   .form-grid {

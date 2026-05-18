@@ -143,7 +143,8 @@ The temporary password is not stored in the database. The admin should give it t
 - No maximum duration inside school hours
 - Minimum advance booking: 1 day
 - Confirmed reservations and blocked times prevent overlaps
-- Cancelled and completed reservations do not block future scheduling
+- Deleted reservations are removed from the schedule immediately
+- Completed reservations do not block future scheduling
 
 Overlap logic:
 
@@ -155,7 +156,7 @@ The same rule is enforced in `schema.sql` with PostgreSQL triggers, so users can
 
 ## Mobile Notes
 
-Desktop defaults to week view. Phones default to day view or agenda-style behavior for readability. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and modals behave like bottom sheets. If touch drag selection is difficult on a device, tap a time slot or use `+ Create`, then manually adjust the date and time fields.
+Desktop defaults to week view. Phones default to day view for readability and touch selection. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and submenu panels use the full screen. If touch drag selection is difficult on a device, tap a time slot or use `+ Create`, then manually adjust the date and time fields.
 
 Recommended test widths:
 
