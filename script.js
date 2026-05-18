@@ -1443,6 +1443,11 @@ async function copyText(text) {
 }
 
 function showToast(message, type = 'info') {
+  const toastHost = [...document.querySelectorAll('dialog[open]')].at(-1) || document.body;
+  if (els.toastRegion.parentElement !== toastHost) {
+    toastHost.appendChild(els.toastRegion);
+  }
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.textContent = message;
