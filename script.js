@@ -460,7 +460,7 @@ function changeCalendarView(viewName) {
 function handleResize() {
   if (!state.calendar) return;
   const preferredView = getResponsiveDefaultView();
-  if (window.innerWidth <= MOBILE_BREAKPOINT && state.calendar.view.type === 'timeGridWeek') {
+  if (window.innerWidth <= MOBILE_BREAKPOINT && state.calendar.view.type !== preferredView) {
     state.calendar.changeView(preferredView);
     els.viewSelector.value = preferredView;
   }

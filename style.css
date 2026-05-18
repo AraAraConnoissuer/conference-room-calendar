@@ -635,9 +635,11 @@ body.is-admin label.admin-only {
 }
 
 .wide-modal {
-  min-height: min(760px, calc(100vh - 56px));
-  min-width: min(1120px, calc(100vw - 56px));
-  width: min(1120px, calc(100vw - 56px));
+  display: flex;
+  flex-direction: column;
+  min-height: min(820px, calc(100vh - 40px));
+  min-width: min(1180px, calc(100vw - 40px));
+  width: min(1180px, calc(100vw - 40px));
 }
 
 .modal-header {
@@ -765,9 +767,9 @@ body.is-admin label.admin-only {
 .activity-list {
   border: 1px solid var(--aup-border);
   border-radius: 8px;
-  max-height: min(620px, calc(100vh - 190px));
-  min-height: min(420px, calc(100vh - 240px));
-  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
 }
 
 .activity-item {
@@ -887,11 +889,11 @@ body.is-admin label.admin-only {
   }
 
   .topbar {
-    align-items: stretch;
+    align-items: center;
     display: grid;
-    gap: 8px;
+    gap: 6px;
     grid-template-columns: 1fr auto;
-    padding: 8px 10px;
+    padding: 8px 10px 6px;
   }
 
   .mobile-only,
@@ -913,18 +915,22 @@ body.is-admin label.admin-only {
   }
 
   .brand-area p,
+  #todayButton,
+  .view-selector,
   .print-button {
     display: none;
   }
 
   .calendar-nav {
     grid-column: 1 / -1;
+    justify-content: space-between;
     order: 3;
   }
 
   .calendar-nav h2 {
     font-size: 18px;
-    margin-left: 4px;
+    margin-left: 0;
+    text-align: center;
   }
 
   .toolbar-actions {
@@ -932,8 +938,7 @@ body.is-admin label.admin-only {
     justify-content: flex-end;
   }
 
-  .toolbar-button,
-  .view-selector {
+  .toolbar-button {
     min-height: 44px;
     padding-left: 12px;
     padding-right: 12px;
@@ -955,10 +960,6 @@ body.is-admin label.admin-only {
 
   .search-wrap.open input {
     display: block;
-  }
-
-  .view-selector {
-    max-width: 112px;
   }
 
   .sidebar {
@@ -1050,13 +1051,36 @@ body.is-admin label.admin-only {
   .modal.admin-requests-modal .wide-modal,
   .modal.password-reset-requests-modal .wide-modal {
     border-radius: 0;
+    display: flex;
+    flex-direction: column;
     height: 100vh;
     height: 100dvh;
     max-height: 100vh;
     max-height: 100dvh;
     min-height: 100vh;
     min-height: 100dvh;
+    overflow-y: visible;
     width: 100vw;
+  }
+
+  .modal.log-modal .activity-list,
+  .modal.admin-requests-modal .activity-list,
+  .modal.password-reset-requests-modal .activity-list {
+    flex: 1;
+    overflow: visible;
+  }
+
+  .modal.log-modal .activity-item,
+  .modal.admin-requests-modal .activity-item,
+  .modal.password-reset-requests-modal .activity-item {
+    padding: 9px 12px;
+  }
+
+  .modal.log-modal .activity-item p,
+  .modal.admin-requests-modal .activity-item p,
+  .modal.password-reset-requests-modal .activity-item p {
+    line-height: 1.25;
+    margin-top: 2px;
   }
 
   .form-grid {
@@ -1085,16 +1109,20 @@ body.is-admin label.admin-only {
   }
 
   .toolbar-actions {
+    position: absolute;
+    right: 10px;
+    top: 8px;
     justify-content: space-between;
   }
 
   .calendar-nav {
     flex-wrap: wrap;
+    gap: 6px;
   }
 
   .calendar-nav h2 {
-    flex-basis: 100%;
-    order: -1;
+    flex: 1;
+    order: 0;
   }
 
   .brand-area h1 {
