@@ -635,7 +635,9 @@ body.is-admin label.admin-only {
 }
 
 .wide-modal {
-  min-width: min(900px, calc(100vw - 32px));
+  min-height: min(760px, calc(100vh - 56px));
+  min-width: min(1120px, calc(100vw - 56px));
+  width: min(1120px, calc(100vw - 56px));
 }
 
 .modal-header {
@@ -763,7 +765,8 @@ body.is-admin label.admin-only {
 .activity-list {
   border: 1px solid var(--aup-border);
   border-radius: 8px;
-  max-height: 58vh;
+  max-height: min(620px, calc(100vh - 190px));
+  min-height: min(420px, calc(100vh - 240px));
   overflow: auto;
 }
 
