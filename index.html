@@ -7,7 +7,7 @@
   <title>AUP Conference Room Calendar</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260518-2">
+  <link rel="stylesheet" href="style.css?v=20260518-3">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
@@ -201,7 +201,7 @@
   </dialog>
 
   <dialog class="modal change-password-modal" id="changePasswordModal">
-    <form method="dialog" class="modal-card" id="changePasswordForm">
+    <form class="modal-card" id="changePasswordForm">
       <div class="modal-header">
         <div>
           <h3>Change Temporary Password</h3>
@@ -216,8 +216,9 @@
           <input type="password" id="confirmNewPassword" required minlength="6" autocomplete="new-password">
         </label>
       </div>
+      <p class="form-message" id="changePasswordMessage" aria-live="polite"></p>
       <div class="modal-actions">
-        <button type="submit" class="primary-button">Update password</button>
+        <button type="submit" class="primary-button" id="changePasswordButton">Update password</button>
       </div>
     </form>
   </dialog>
@@ -394,6 +395,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="supabaseClient.js"></script>
-  <script src="script.js?v=20260518-2"></script>
+  <script src="script.js?v=20260518-3"></script>
 </body>
 </html>

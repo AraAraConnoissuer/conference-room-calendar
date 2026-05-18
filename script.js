@@ -93,6 +93,8 @@ function cacheElements() {
     'changePasswordForm',
     'newPassword',
     'confirmNewPassword',
+    'changePasswordMessage',
+    'changePasswordButton',
     'logoutButton',
     'reservationModal',
     'reservationCloseButton',
@@ -233,10 +235,12 @@ async function initializeSession() {
     state.profile = await fetchProfile(state.currentUser.id);
   }
 
-  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-    state.currentUser = session?.user ?? null;
-    state.profile = state.currentUser ? await fetchProfile(state.currentUser.id) : null;
-    await renderAuthState();
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    setTimeout(async () => {
+      state.currentUser = session?.user ?? null;
+      state.profile = state.currentUser ? await fetchProfile(state.currentUser.id) : null;
+      await renderAuthState();
+    }, 0);
   });
 }
 
@@ -893,25 +897,54 @@ async function changeTemporaryPassword(event) {
   const password = els.newPassword.value;
   const confirmPassword = els.confirmNewPassword.value;
 
+  setChangePasswordMessage('');
+  if (password.length < 6) {
+    setChangePasswordMessage('Password must be at least 6 characters.', 'error');
+    return;
+  }
+
   if (password !== confirmPassword) {
-    showToast('Passwords do not match.', 'error');
+    setChangePasswordMessage('Passwords do not match.', 'error');
     return;
   }
 
-  const { data, error } = await supabaseClient.auth.updateUser({
-    password,
-    data: { must_change_password: false }
-  });
+  setChangePasswordBusy(true);
 
-  if (error) {
-    showToast(error.message, 'error');
-    return;
+  try {
+    const { data, error } = await withTimeout(
+      supabaseClient.auth.updateUser({
+        password,
+        data: { must_change_password: false }
+      }),
+      15000,
+      'Password update took too long. Please check your connection and try again.'
+    );
+
+    if (error) {
+      setChangePasswordMessage(error.message, 'error');
+      return;
+    }
+
+    state.currentUser = data.user;
+    els.changePasswordForm.reset();
+    setChangePasswordMessage('');
+    showToast('Password updated.', 'success');
+    await renderAuthState();
+  } catch (error) {
+    setChangePasswordMessage(error.message || 'Password update failed. Please try again.', 'error');
+  } finally {
+    setChangePasswordBusy(false);
   }
+}
 
-  state.currentUser = data.user;
-  els.changePasswordForm.reset();
-  showToast('Password updated.', 'success');
-  await renderAuthState();
+function setChangePasswordBusy(isBusy) {
+  els.changePasswordButton.disabled = isBusy;
+  els.changePasswordButton.textContent = isBusy ? 'Updating...' : 'Update password';
+}
+
+function setChangePasswordMessage(message, type = '') {
+  els.changePasswordMessage.textContent = message;
+  els.changePasswordMessage.className = type ? `form-message ${type}` : 'form-message';
 }
 
 async function logoutUser() {
@@ -1425,4 +1458,12 @@ function debounce(callback, delay) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => callback(...args), delay);
   };
+}
+
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
