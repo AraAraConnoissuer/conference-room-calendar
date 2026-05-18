@@ -179,16 +179,16 @@ function bindStaticEvents() {
   els.blockTimeButton.addEventListener('click', () => openReservationModal(defaultCreateRange(), { type: 'blocked' }));
   els.reservationCloseButton.addEventListener('click', closeReservationModal);
   els.reservationForm.addEventListener('submit', saveReservationFromForm);
-  els.deleteReservationButton.addEventListener('click', requestCancelReservation);
+  els.deleteReservationButton.addEventListener('click', requestDeleteReservation);
   els.copyReservationButton.addEventListener('click', copyCurrentFormDetails);
   els.detailsCloseButton.addEventListener('click', () => els.detailsModal.close());
   els.detailsCopyButton.addEventListener('click', () => copyDetailsFromDialog());
   els.detailsEditButton.addEventListener('click', openEditFromDetails);
   els.conflictCloseButton.addEventListener('click', () => els.conflictModal.close());
   els.conflictOkButton.addEventListener('click', () => els.conflictModal.close());
-  els.confirmCloseButton.addEventListener('click', () => els.confirmModal.close());
-  els.confirmNoButton.addEventListener('click', () => els.confirmModal.close());
-  els.confirmYesButton.addEventListener('click', cancelReservation);
+  els.confirmCloseButton.addEventListener('click', closeConfirmModal);
+  els.confirmNoButton.addEventListener('click', closeConfirmModal);
+  els.confirmYesButton.addEventListener('click', deleteReservation);
   els.mobileMenuButton.addEventListener('click', openMobileSidebar);
   els.mobileScrim.addEventListener('click', closeMobileSidebar);
   els.miniPrevButton.addEventListener('click', () => shiftMiniCalendar(-1));
@@ -284,6 +284,10 @@ function initializeCalendar() {
     nowIndicator: true,
     selectable: true,
     selectMirror: true,
+    selectMinDistance: 3,
+    longPressDelay: 220,
+    selectLongPressDelay: 220,
+    eventLongPressDelay: 300,
     editable: true,
     eventResizableFromStart: true,
     slotMinTime: '07:00:00',
@@ -479,7 +483,7 @@ function openReservationModal(range, options = {}) {
 
   const canEdit = type === 'blocked' ? isAdmin() : !record || canEditRecord(record);
   [...els.reservationForm.elements].forEach((element) => {
-    if (element.type !== 'hidden' && element.id !== 'reservationReservedBy') {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) && element.type !== 'hidden' && element.id !== 'reservationReservedBy') {
       element.disabled = !canEdit;
     }
   });
@@ -684,15 +688,23 @@ function openEditFromDetails() {
   );
 }
 
-function requestCancelReservation() {
+function requestDeleteReservation() {
   const id = els.reservationId.value;
   if (!id) return;
   state.pendingDeleteId = id;
-  els.confirmMessage.textContent = 'Cancel this reservation for the school conference room?';
+  const isBlocked = els.reservationType.value === 'blocked';
+  els.confirmMessage.textContent = isBlocked
+    ? 'Delete this blocked time from the school conference room schedule?'
+    : 'Delete this reservation from the school conference room schedule?';
   els.confirmModal.showModal();
 }
 
-async function cancelReservation() {
+function closeConfirmModal() {
+  state.pendingDeleteId = null;
+  els.confirmModal.close();
+}
+
+async function deleteReservation() {
   const id = state.pendingDeleteId;
   if (!id) return;
   const reservation = state.reservations.find((item) => item.id === id);
@@ -704,8 +716,8 @@ async function cancelReservation() {
       const { error } = await supabaseClient.from('blocked_times').delete().eq('id', id);
       if (error) throw error;
     } else if (reservation) {
-      if (!canEditRecord(reservation)) throw new Error('You can only cancel your own reservation.');
-      const { error } = await supabaseClient.from('reservations').update({ status: 'cancelled' }).eq('id', id);
+      if (!canEditRecord(reservation)) throw new Error('You can only delete your own reservation.');
+      const { error } = await supabaseClient.from('reservations').delete().eq('id', id);
       if (error) throw error;
     }
 
@@ -714,7 +726,7 @@ async function cancelReservation() {
     els.reservationModal.close();
     await loadSchedule();
     refreshCalendar();
-    showToast('Schedule updated.', 'success');
+    showToast('Schedule slot deleted.', 'success');
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -1229,7 +1241,7 @@ function defaultCreateRange() {
 
 function getResponsiveDefaultView() {
   if (window.innerWidth <= 480) return 'timeGridDay';
-  if (window.innerWidth <= 768) return 'listWeek';
+  if (window.innerWidth <= 768) return 'timeGridDay';
   return 'timeGridWeek';
 }
 

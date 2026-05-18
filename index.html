@@ -282,7 +282,7 @@
       </div>
 
       <div class="modal-actions split-actions">
-        <button type="button" class="danger-button" id="deleteReservationButton">Cancel/Delete</button>
+        <button type="button" class="danger-button" id="deleteReservationButton">Delete slot</button>
         <div>
           <button type="button" class="secondary-button" id="copyReservationButton">Copy details</button>
           <button type="submit" class="primary-button" id="saveReservationButton">Save</button>
@@ -328,15 +328,15 @@
     <article class="modal-card">
       <div class="modal-header">
         <div>
-          <h3>Confirm cancellation</h3>
-          <p>This will mark the reservation as cancelled.</p>
+          <h3>Confirm deletion</h3>
+          <p>This will permanently remove the selected schedule slot.</p>
         </div>
         <button class="icon-button" id="confirmCloseButton" aria-label="Close">&times;</button>
       </div>
       <p id="confirmMessage">Are you sure?</p>
       <div class="modal-actions">
-        <button type="button" class="secondary-button" id="confirmNoButton">Keep reservation</button>
-        <button type="button" class="danger-button" id="confirmYesButton">Cancel reservation</button>
+        <button type="button" class="secondary-button" id="confirmNoButton">Keep slot</button>
+        <button type="button" class="danger-button" id="confirmYesButton">Delete slot</button>
       </div>
     </article>
   </dialog>

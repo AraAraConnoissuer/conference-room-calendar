@@ -17,7 +17,7 @@ A Google Calendar-inspired schoolwide reservation system for the single school c
 - No-overlap validation in both frontend JavaScript and database triggers
 - Current availability indicator: Available Now or In Use Until
 - Admin blocked time slots for maintenance, exams, school use, cleaning, and events
-- Search, filters, reservation details, copy details, cancellation confirmation, and toast messages
+- Search, filters, reservation details, copy details, deletion confirmation, and toast messages
 
 ## Tech Stack
 
@@ -113,7 +113,7 @@ where student_number = 'aupadmin001';
 
 The connected Supabase project already has this starter admin account. After the starter admin exists, future admin accounts must be requested from the create-account page and approved by an existing admin. Students cannot directly make themselves admins.
 
-Students can view all reservations, create confirmed reservations when the slot is free, and edit or cancel only their own reservations. Admins can create, edit, move, resize, cancel, or delete any reservation, manage blocked times, and view activity history.
+Students can view all reservations, create confirmed reservations when the slot is free, and edit or delete only their own reservations. Admins can create, edit, move, resize, or delete any reservation, manage blocked times, and view activity history.
 
 ## Forgotten Passwords
 
