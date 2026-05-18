@@ -3,6 +3,7 @@ const MIN_ADVANCE_HOURS = 24;
 const PASSWORD_UPDATE_TIMEOUT_MS = 15000;
 const AUTH_EMAIL_DOMAIN = 'aup.edu.ph';
 const MOBILE_BREAKPOINT = 768;
+const MOBILE_VIEW_OPTIONS = new Set(['timeGridWeek', 'dayGridMonth', 'multiMonthYear']);
 const ACTIVE_STATUSES = ['confirmed', 'completed', 'blocked'];
 const SCHEDULE_STATE_KEYS = [
   'reservations',
@@ -273,6 +274,7 @@ async function renderAuthState() {
   updateAdminVisibility();
   if (!state.calendar) {
     renderMiniCalendar();
+    updateResponsiveViewOptions();
     initializeCalendar();
   }
   await loadSchedule();
@@ -351,6 +353,7 @@ function initializeCalendar() {
 
   state.calendar.render();
   els.viewSelector.value = state.calendar.view.type;
+  updateResponsiveViewOptions();
 }
 
 async function loadSchedule() {
@@ -453,14 +456,17 @@ function refreshCalendar() {
 }
 
 function changeCalendarView(viewName) {
-  state.calendar.changeView(viewName);
+  const nextView = getAllowedView(viewName);
+  state.calendar.changeView(nextView);
+  els.viewSelector.value = nextView;
   setTimeout(() => state.calendar.updateSize(), 0);
 }
 
 function handleResize() {
   if (!state.calendar) return;
+  updateResponsiveViewOptions();
   const preferredView = getResponsiveDefaultView();
-  if (window.innerWidth <= MOBILE_BREAKPOINT && state.calendar.view.type !== preferredView) {
+  if (state.calendar.view.type !== getAllowedView(state.calendar.view.type)) {
     state.calendar.changeView(preferredView);
     els.viewSelector.value = preferredView;
   }
@@ -1282,7 +1288,27 @@ function defaultCreateRange() {
 }
 
 function getResponsiveDefaultView() {
-  return window.innerWidth <= MOBILE_BREAKPOINT ? 'timeGridDay' : 'timeGridWeek';
+  return 'timeGridWeek';
+}
+
+function getAllowedView(viewName) {
+  if (window.innerWidth <= MOBILE_BREAKPOINT && !MOBILE_VIEW_OPTIONS.has(viewName)) {
+    return getResponsiveDefaultView();
+  }
+  return viewName;
+}
+
+function updateResponsiveViewOptions() {
+  const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+  [...els.viewSelector.options].forEach((option) => {
+    const hidden = isMobile && !MOBILE_VIEW_OPTIONS.has(option.value);
+    option.hidden = hidden;
+    option.disabled = hidden;
+  });
+
+  if (isMobile && !MOBILE_VIEW_OPTIONS.has(els.viewSelector.value)) {
+    els.viewSelector.value = getResponsiveDefaultView();
+  }
 }
 
 function matchesSearch(record, term) {

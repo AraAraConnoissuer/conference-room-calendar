@@ -306,6 +306,18 @@ button {
   padding: 0;
 }
 
+.icon-button span {
+  background: currentColor;
+  border-radius: 999px;
+  display: block;
+  height: 2px;
+  width: 18px;
+}
+
+.icon-button span + span {
+  margin-top: 4px;
+}
+
 .mobile-only,
 .mobile-search-button {
   display: none;
@@ -642,6 +654,24 @@ body.is-admin label.admin-only {
   width: min(1180px, calc(100vw - 40px));
 }
 
+.log-modal,
+.admin-requests-modal,
+.password-reset-requests-modal {
+  max-height: min(820px, calc(100vh - 40px));
+  max-width: min(1180px, calc(100vw - 40px));
+  overflow: hidden;
+  width: min(1180px, calc(100vw - 40px));
+}
+
+.log-modal .wide-modal,
+.admin-requests-modal .wide-modal,
+.password-reset-requests-modal .wide-modal {
+  height: min(820px, calc(100vh - 40px));
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
 .modal-header {
   align-items: flex-start;
   display: flex;
@@ -904,6 +934,13 @@ body.is-admin label.admin-only {
     display: inline-flex;
   }
 
+  #mobileMenuButton {
+    border-color: var(--aup-border);
+    color: var(--aup-blue);
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
   .brand-area {
     min-width: 0;
   }
@@ -919,7 +956,6 @@ body.is-admin label.admin-only {
 
   .brand-area p,
   #todayButton,
-  .view-selector,
   .print-button {
     display: none;
   }
@@ -941,10 +977,17 @@ body.is-admin label.admin-only {
     justify-content: flex-end;
   }
 
-  .toolbar-button {
+  .toolbar-button,
+  .view-selector {
     min-height: 44px;
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .view-selector {
+    display: block;
+    max-width: 112px;
+    min-width: 102px;
   }
 
   .search-wrap {
@@ -1107,14 +1150,8 @@ body.is-admin label.admin-only {
 }
 
 @media (max-width: 480px) {
-  .topbar {
-    grid-template-columns: 1fr;
-  }
-
   .toolbar-actions {
-    position: absolute;
-    right: 10px;
-    top: 8px;
+    position: static;
     justify-content: space-between;
   }
 
@@ -1135,6 +1172,13 @@ body.is-admin label.admin-only {
   .toolbar-button {
     padding-left: 10px;
     padding-right: 10px;
+  }
+
+  .view-selector {
+    max-width: 104px;
+    min-width: 98px;
+    padding-left: 10px;
+    padding-right: 28px;
   }
 
   .profile-pill {
