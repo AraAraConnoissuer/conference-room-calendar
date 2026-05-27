@@ -3,26 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AUP school conference room reservation calendar">
-  <title>AUP Conference Room Calendar</title>
+  <meta name="description" content="CORE conference room reservation engine for the CSC Conference Room">
+  <title>CORE | Conference Room Reservation Engine</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260519-3">
+  <link rel="stylesheet" href="style.css?v=20260527-1">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
     <div class="auth-brand">
-      <div class="brand-mark">AUP</div>
+      <img class="brand-logo" src="assets/csc-logo.svg" alt="CSC logo">
       <div>
-        <h1>Conference Room Calendar</h1>
-        <p>Adventist University of the Philippines</p>
+        <h1>CORE</h1>
+        <p>Conference Room Reservation Engine</p>
       </div>
     </div>
 
     <div class="auth-layout">
       <article class="auth-card">
         <span class="section-label">Login</span>
-        <h2>Reserve the school conference room</h2>
+        <h2>Reserve the CSC Conference Room</h2>
         <p>Sign in with your student number and password.</p>
         <form id="loginForm" class="auth-form">
           <label>Student number
@@ -38,8 +38,8 @@
 
       <article class="auth-card">
         <span class="section-label">Create Account</span>
-        <h2>New student account</h2>
-        <p>Student accounts are available immediately. Admin access requires approval by an existing admin.</p>
+        <h2>New CORE account</h2>
+        <p>Students can reserve available slots. CSC Officer/Admin access requires approval.</p>
         <form id="registerForm" class="auth-form">
           <label>Student number
             <input type="text" id="registerStudentNumber" required autocomplete="username" placeholder="2026-00001">
@@ -56,7 +56,7 @@
           <label>Account type
             <select id="registerAccountType">
               <option value="student">Student</option>
-              <option value="admin">Request admin access</option>
+              <option value="admin">Request CSC Officer/Admin access</option>
             </select>
           </label>
           <button type="submit" class="primary-button">Create account</button>
@@ -65,7 +65,7 @@
     </div>
 
     <p class="auth-footnote" id="authSetupNotice">
-      Add your Supabase URL and anon key in supabaseClient.js before using real accounts.
+      Add your Supabase URL and anon key in supabaseClient.js before using real CORE accounts.
     </p>
   </section>
 
@@ -77,10 +77,10 @@
           <span></span>
           <span></span>
         </button>
-        <div class="brand-mark">AUP</div>
+        <img class="brand-logo" src="assets/csc-logo.svg" alt="CSC logo">
         <div>
-          <h1>Conference Room</h1>
-          <p>Adventist University of the Philippines</p>
+          <h1>CORE</h1>
+          <p>CSC Conference Room</p>
         </div>
       </div>
 
@@ -97,7 +97,6 @@
           <input type="search" id="searchInput" placeholder="Search reservations" autocomplete="off">
         </div>
         <select id="viewSelector" class="view-selector" aria-label="Calendar view">
-          <option value="timeGridDay">Day</option>
           <option value="timeGridWeek" selected>Week</option>
           <option value="dayGridMonth">Month</option>
           <option value="multiMonthYear">Year</option>
@@ -112,10 +111,10 @@
     </header>
 
     <aside class="sidebar" id="sidebar" aria-label="Calendar sidebar">
-      <button class="create-button" id="createReservationButton">+ Create</button>
+      <button class="create-button" id="createReservationButton">+ CSC Conference Room</button>
 
       <section class="sidebar-section availability-card">
-        <span class="section-label">School Conference Room</span>
+        <span class="section-label">CSC Conference Room</span>
         <strong id="availabilityStatus">Checking availability...</strong>
         <p id="availabilityDetail">Reservations are automatically confirmed when the slot is free.</p>
       </section>
@@ -156,7 +155,9 @@
         <span class="section-label">Account</span>
         <button class="secondary-button admin-only" id="adminRequestsButton">Admin Requests</button>
         <button class="secondary-button admin-only" id="passwordResetRequestsButton">Password Resets</button>
+        <button class="secondary-button admin-only" id="reservationListButton">Reservation List</button>
         <button class="secondary-button" id="activityLogButton">Activity Log</button>
+        <button class="secondary-button" id="aboutButton">About CORE</button>
         <button class="secondary-button admin-only" id="blockTimeButton">Block Time</button>
         <button class="text-button" id="logoutButton">Sign out</button>
       </section>
@@ -227,27 +228,27 @@
     <form method="dialog" class="modal-card" id="reservationForm">
       <div class="modal-header">
         <div>
-          <h3 id="reservationModalTitle">Create Reservation</h3>
-          <p>Every booking is for the AUP school conference room.</p>
+          <h3 id="reservationModalTitle">CSC Conference Room</h3>
+          <p>Every booking is for the CSC Conference Room.</p>
         </div>
         <button type="button" class="icon-button" id="reservationCloseButton" aria-label="Close">&times;</button>
       </div>
 
       <input type="hidden" id="reservationId">
       <div class="form-grid">
-        <label class="full-span">Meeting title
-          <input type="text" id="reservationTitle" required maxlength="120">
+        <label>Student Name
+          <input type="text" id="reservationReservedBy" required maxlength="140">
         </label>
         <label>Date
           <input type="date" id="reservationDate" required>
         </label>
-        <label>Start time
+        <label class="time-field">Start Time
           <input type="time" id="reservationStart" required>
         </label>
-        <label>End time
+        <label class="time-field">End Time
           <input type="time" id="reservationEnd" required>
         </label>
-        <label>Status
+        <label class="admin-only">Status
           <select id="reservationStatus">
             <option value="confirmed">Confirmed</option>
             <option value="completed">Completed</option>
@@ -259,28 +260,21 @@
             <option value="blocked">Blocked time</option>
           </select>
         </label>
-        <label>Organization / group
-          <input type="text" id="reservationOrganization" maxlength="120">
+        <label>Organization
+          <input type="text" id="reservationOrganization" required maxlength="120">
         </label>
-        <label>People involved
-          <input type="text" id="reservationPeople" maxlength="180">
+        <label>Number of People Involved
+          <input type="number" id="reservationPeople" required min="1" max="999" inputmode="numeric">
         </label>
-        <label class="full-span">Purpose of meeting
+        <label class="full-span">Purpose of Meeting
           <textarea id="reservationPurpose" rows="3" required></textarea>
-        </label>
-        <label class="full-span">Optional notes
-          <textarea id="reservationNotes" rows="3"></textarea>
-        </label>
-        <label>Reserved by
-          <input type="text" id="reservationReservedBy" readonly>
         </label>
       </div>
 
       <div class="modal-actions split-actions">
-        <button type="button" class="danger-button" id="deleteReservationButton">Delete slot</button>
+        <button type="button" class="danger-button admin-only" id="deleteReservationButton">Delete Reservation</button>
         <div>
-          <button type="button" class="secondary-button" id="copyReservationButton">Copy details</button>
-          <button type="submit" class="primary-button" id="saveReservationButton">Save</button>
+          <button type="submit" class="primary-button" id="saveReservationButton">Submit Reservation</button>
         </div>
       </div>
     </form>
@@ -291,13 +285,12 @@
       <div class="modal-header">
         <div>
           <h3 id="detailsTitle">Reservation Details</h3>
-          <p id="detailsMeta">School conference room</p>
+          <p id="detailsMeta">CSC Conference Room</p>
         </div>
         <button class="icon-button" id="detailsCloseButton" aria-label="Close">&times;</button>
       </div>
       <dl class="details-list" id="detailsList"></dl>
       <div class="modal-actions">
-        <button type="button" class="secondary-button" id="detailsCopyButton">Copy details</button>
         <button type="button" class="primary-button" id="detailsEditButton">Edit</button>
       </div>
     </article>
@@ -336,6 +329,49 @@
     </article>
   </dialog>
 
+  <dialog class="modal agreement-modal" id="agreementModal">
+    <article class="modal-card wide-modal agreement-card">
+      <div class="modal-header">
+        <div>
+          <h3>CSC Conference Room Rules and Agreement</h3>
+          <p>Review and accept these terms before finalizing your reservation.</p>
+        </div>
+        <button class="icon-button" id="agreementCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="agreement-body">
+        <section>
+          <h4>Rules</h4>
+          <ol>
+            <li>Student reservations are limited to a maximum of 5 hours.</li>
+            <li>Students may only create up to 2 reservations per week.</li>
+            <li>Reservations must follow the selected date, start time, and end time.</li>
+            <li>Students are not allowed to exceed the reserved schedule. Any extension must be handled by CSC Officers/Admins.</li>
+            <li>The room must only be used for the submitted purpose of the reservation.</li>
+            <li>The submitted information must be accurate.</li>
+            <li>Any changes or cancellation requests must follow the proper CSC process.</li>
+            <li>CSC Officers/Admins have the authority to review, modify, approve, reject, or delete reservations when necessary.</li>
+            <li>Misuse of the reservation system may result in booking restrictions.</li>
+          </ol>
+        </section>
+        <section>
+          <h4>Data Privacy Agreement</h4>
+          <p>The information submitted in this reservation form will only be used for CSC Conference Room scheduling, reservation verification, documentation, and administrative monitoring. Only authorized CSC Officers/Admins may access full reservation details.</p>
+        </section>
+        <section>
+          <h4>Chain of Command Agreement</h4>
+          <p>I agree to follow the proper CSC process and comply with authorized CSC Officers/Admins regarding the use and scheduling of the CSC Conference Room.</p>
+        </section>
+        <label class="check-row"><input type="checkbox" id="agreeRules"> <span>I have read and agree to the CSC Conference Room Rules and Agreement.</span></label>
+        <label class="check-row"><input type="checkbox" id="agreePrivacy"> <span>I agree to the Data Privacy Agreement.</span></label>
+        <label class="check-row"><input type="checkbox" id="agreeCommand"> <span>I agree to follow the proper CSC process and chain of command.</span></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="agreementCancelButton">Cancel</button>
+        <button type="button" class="primary-button" id="agreementSubmitButton" disabled>I Agree and Submit Reservation</button>
+      </div>
+    </article>
+  </dialog>
+
   <dialog class="modal log-modal" id="activityLogModal">
     <article class="modal-card wide-modal">
       <div class="modal-header">
@@ -346,6 +382,19 @@
         <button class="icon-button" id="activityCloseButton" aria-label="Close">&times;</button>
       </div>
       <div class="activity-list" id="activityList"></div>
+    </article>
+  </dialog>
+
+  <dialog class="modal reservation-list-modal" id="reservationListModal">
+    <article class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Full Reservation List</h3>
+          <p>CSC Officers/Admins can review, edit, and delete reservations.</p>
+        </div>
+        <button class="icon-button" id="reservationListCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="activity-list" id="reservationList"></div>
     </article>
   </dialog>
 
@@ -392,9 +441,53 @@
     </article>
   </dialog>
 
+  <dialog class="modal about-modal" id="aboutModal">
+    <article class="modal-card wide-modal about-card">
+      <div class="modal-header">
+        <div>
+          <h3>About CORE</h3>
+          <p>Conference Room Reservation Engine documentation and turnover notes.</p>
+        </div>
+        <button class="icon-button" id="aboutCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="about-sections">
+        <section>
+          <h4>Project Purpose</h4>
+          <p>CORE, or Conference Room Reservation Engine, is a web-based scheduling system created for the CSC Conference Room. It allows students and organizations to reserve time slots in an organized and secure way while helping CSC Officers manage reservations, protect submitted information, and monitor conference room usage.</p>
+          <p><strong>Created by:</strong> Lanz Ordoña</p>
+          <p><strong>Published on:</strong> May 27, 2026</p>
+          <p><strong>Maintained by:</strong> Lanz Ordoña</p>
+          <p><strong>Turned over to:</strong> Central Student Council</p>
+          <p><strong>Institution:</strong> Adventist University of the Philippines</p>
+        </section>
+        <section>
+          <h4>Data Privacy Agreement</h4>
+          <p>Reservation information is used only for CSC Conference Room scheduling, verification, documentation, and administrative monitoring. Full private details are restricted to authorized CSC Officers/Admins and the student who owns the reservation.</p>
+        </section>
+        <section>
+          <h4>Chain of Command Agreement</h4>
+          <p>Students agree to follow the proper CSC process and comply with authorized CSC Officers/Admins regarding use and scheduling of the CSC Conference Room.</p>
+        </section>
+        <section>
+          <h4>Official Turnover to CSC</h4>
+          <p><strong>System name:</strong> CORE - Conference Room Reservation Engine</p>
+          <p><strong>System purpose:</strong> Secure scheduling and monitoring for the CSC Conference Room.</p>
+          <p><strong>Turnover date:</strong> May 27, 2026</p>
+          <p><strong>CSC representative:</strong> Central Student Council assigned officer</p>
+          <p><strong>Handover scope:</strong> hosting account ownership, admin account transfer, database backup process, source code handover, documentation handover, future update process, and maintenance responsibility.</p>
+        </section>
+        <section>
+          <h4>Hosting Ownership and Maintenance</h4>
+          <p>Deploy CORE through an official CSC hosting account whenever possible. CSC should hold hosting ownership, admin access, backup access, and secure credential handover records.</p>
+          <p>Initial publishing and maintenance of the CORE web application shall be handled by Lanz Ordoña unless officially transferred to another assigned CSC technical officer.</p>
+        </section>
+      </div>
+    </article>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="supabaseClient.js"></script>
-  <script src="script.js?v=20260519-3"></script>
+  <script src="script.js?v=20260527-1"></script>
 </body>
 </html>

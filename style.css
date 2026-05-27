@@ -1,6 +1,6 @@
 :root {
-  --aup-blue: #003A70;
-  --aup-navy: #002147;
+  --aup-blue: #0B3B75;
+  --aup-navy: #071C3D;
   --aup-gold: #F4B400;
   --aup-gold-dark: #C99700;
   --aup-light-bg: #F8FAFC;
@@ -57,13 +57,33 @@ button {
 .auth-screen {
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(0, 58, 112, 0.92), rgba(0, 33, 71, 0.96)),
-    var(--aup-navy);
+    linear-gradient(180deg, rgba(7, 28, 61, 0.84), rgba(7, 28, 61, 0.94)),
+    url("https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   overflow-y: auto;
   padding: 34px 18px;
+  position: relative;
+  animation: authBackgroundCycle 24s infinite;
+}
+
+.auth-screen::before,
+.calendar-panel::before {
+  background: url("assets/csc-logo.svg") center / contain no-repeat;
+  content: "";
+  opacity: 0.045;
+  pointer-events: none;
+  position: absolute;
+}
+
+.auth-screen::before {
+  height: min(70vw, 520px);
+  right: -110px;
+  top: 8vh;
+  width: min(70vw, 520px);
 }
 
 .auth-brand {
@@ -73,7 +93,9 @@ button {
   gap: 14px;
   margin-bottom: 28px;
   max-width: 960px;
+  position: relative;
   width: 100%;
+  z-index: 1;
 }
 
 .auth-brand h1 {
@@ -91,7 +113,9 @@ button {
   gap: 20px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   max-width: 960px;
+  position: relative;
   width: 100%;
+  z-index: 1;
 }
 
 .auth-card {
@@ -190,6 +214,14 @@ button {
   height: 46px;
   justify-content: center;
   width: 46px;
+}
+
+.brand-logo {
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(7, 28, 61, 0.18);
+  flex: 0 0 auto;
+  height: 50px;
+  width: 50px;
 }
 
 .brand-area h1 {
@@ -545,6 +577,13 @@ button {
   position: relative;
 }
 
+.calendar-panel::before {
+  bottom: 34px;
+  height: min(42vw, 360px);
+  right: 34px;
+  width: min(42vw, 360px);
+}
+
 #calendar {
   height: 100%;
 }
@@ -655,6 +694,7 @@ body.is-admin label.admin-only {
 }
 
 .log-modal,
+.reservation-list-modal,
 .admin-requests-modal,
 .password-reset-requests-modal {
   max-height: min(820px, calc(100vh - 40px));
@@ -664,6 +704,7 @@ body.is-admin label.admin-only {
 }
 
 .log-modal .wide-modal,
+.reservation-list-modal .wide-modal,
 .admin-requests-modal .wide-modal,
 .password-reset-requests-modal .wide-modal {
   height: min(820px, calc(100vh - 40px));
@@ -696,6 +737,10 @@ body.is-admin label.admin-only {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.time-field {
+  grid-column: span 1;
 }
 
 .form-grid label {
@@ -802,6 +847,36 @@ body.is-admin label.admin-only {
   overflow: visible;
 }
 
+.agreement-body,
+.about-sections {
+  display: grid;
+  gap: 16px;
+  line-height: 1.45;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.agreement-body h4,
+.about-sections h4 {
+  color: var(--aup-navy);
+  margin: 0 0 6px;
+}
+
+.agreement-body ol {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.agreement-body p,
+.about-sections p {
+  margin: 5px 0;
+}
+
+.agreement-card,
+.about-card {
+  gap: 0;
+}
+
 .activity-item {
   border-bottom: 1px solid var(--aup-border);
   padding: 12px 14px;
@@ -875,6 +950,27 @@ body.is-admin label.admin-only {
   display: none;
 }
 
+@keyframes authBackgroundCycle {
+  0%,
+  29% {
+    background-image:
+      linear-gradient(180deg, rgba(7, 28, 61, 0.84), rgba(7, 28, 61, 0.94)),
+      url("https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1600&q=80");
+  }
+  33%,
+  62% {
+    background-image:
+      linear-gradient(180deg, rgba(7, 28, 61, 0.84), rgba(7, 28, 61, 0.94)),
+      url("https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1600&q=80");
+  }
+  66%,
+  100% {
+    background-image:
+      linear-gradient(180deg, rgba(7, 28, 61, 0.84), rgba(7, 28, 61, 0.94)),
+      url("https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80");
+  }
+}
+
 @media (max-width: 1024px) {
   .app-shell {
     grid-template-columns: 236px minmax(0, 1fr);
@@ -946,6 +1042,11 @@ body.is-admin label.admin-only {
   }
 
   .brand-mark {
+    height: 40px;
+    width: 40px;
+  }
+
+  .brand-logo {
     height: 40px;
     width: 40px;
   }
@@ -1077,6 +1178,7 @@ body.is-admin label.admin-only {
   }
 
   .modal.log-modal,
+  .modal.reservation-list-modal,
   .modal.admin-requests-modal,
   .modal.password-reset-requests-modal {
     border-radius: 0;
@@ -1094,6 +1196,7 @@ body.is-admin label.admin-only {
   }
 
   .modal.log-modal .wide-modal,
+  .modal.reservation-list-modal .wide-modal,
   .modal.admin-requests-modal .wide-modal,
   .modal.password-reset-requests-modal .wide-modal {
     border-radius: 0;
@@ -1110,6 +1213,7 @@ body.is-admin label.admin-only {
   }
 
   .modal.log-modal .activity-list,
+  .modal.reservation-list-modal .activity-list,
   .modal.admin-requests-modal .activity-list,
   .modal.password-reset-requests-modal .activity-list {
     flex: 1;
@@ -1117,12 +1221,14 @@ body.is-admin label.admin-only {
   }
 
   .modal.log-modal .activity-item,
+  .modal.reservation-list-modal .activity-item,
   .modal.admin-requests-modal .activity-item,
   .modal.password-reset-requests-modal .activity-item {
     padding: 9px 12px;
   }
 
   .modal.log-modal .activity-item p,
+  .modal.reservation-list-modal .activity-item p,
   .modal.admin-requests-modal .activity-item p,
   .modal.password-reset-requests-modal .activity-item p {
     line-height: 1.25;
@@ -1131,6 +1237,10 @@ body.is-admin label.admin-only {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .time-field {
+    grid-column: auto;
   }
 
   .full-span {
@@ -1146,6 +1256,30 @@ body.is-admin label.admin-only {
 
   .details-list {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .danger-button,
+  .admin-only,
+  #detailsEditButton,
+  #deleteReservationButton,
+  #printButton,
+  .modal-actions,
+  .sidebar,
+  .topbar {
+    display: none !important;
+  }
+
+  body,
+  html {
+    overflow: visible;
+  }
+
+  .calendar-panel,
+  .app-shell {
+    display: block;
+    height: auto;
   }
 }
 

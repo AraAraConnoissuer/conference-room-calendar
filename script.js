@@ -1,9 +1,12 @@
 const SCHOOL_HOURS = { start: '08:00', end: '17:00' };
 const MIN_ADVANCE_HOURS = 24;
+const MAX_STUDENT_BOOKING_HOURS = 5;
+const MAX_STUDENT_BOOKINGS_PER_WEEK = 2;
 const PASSWORD_UPDATE_TIMEOUT_MS = 15000;
 const AUTH_EMAIL_DOMAIN = 'aup.edu.ph';
 const MOBILE_BREAKPOINT = 768;
-const MOBILE_VIEW_OPTIONS = new Set(['timeGridWeek', 'dayGridMonth', 'multiMonthYear']);
+const MOBILE_VIEW_OPTIONS = new Set(['timeGridWeek', 'dayGridMonth', 'multiMonthYear', 'listWeek']);
+const ROOM_NAME = 'CSC Conference Room';
 const ACTIVE_STATUSES = ['confirmed', 'completed', 'blocked'];
 const SCHEDULE_STATE_KEYS = [
   'reservations',
@@ -30,6 +33,7 @@ const state = {
   adminRequests: [],
   passwordResetRequests: [],
   pendingDeleteId: null,
+  pendingAgreementFormData: null,
   searchTerm: '',
   filters: {
     mine: false,
@@ -105,7 +109,6 @@ function cacheElements() {
     'reservationForm',
     'reservationModalTitle',
     'reservationId',
-    'reservationTitle',
     'reservationDate',
     'reservationStart',
     'reservationEnd',
@@ -114,17 +117,21 @@ function cacheElements() {
     'reservationOrganization',
     'reservationPeople',
     'reservationPurpose',
-    'reservationNotes',
     'reservationReservedBy',
     'deleteReservationButton',
-    'copyReservationButton',
     'saveReservationButton',
+    'agreementModal',
+    'agreementCloseButton',
+    'agreementCancelButton',
+    'agreementSubmitButton',
+    'agreeRules',
+    'agreePrivacy',
+    'agreeCommand',
     'detailsModal',
     'detailsTitle',
     'detailsMeta',
     'detailsList',
     'detailsCloseButton',
-    'detailsCopyButton',
     'detailsEditButton',
     'conflictModal',
     'conflictBody',
@@ -153,6 +160,13 @@ function cacheElements() {
     'activityLogModal',
     'activityList',
     'activityCloseButton',
+    'reservationListButton',
+    'reservationListModal',
+    'reservationList',
+    'reservationListCloseButton',
+    'aboutButton',
+    'aboutModal',
+    'aboutCloseButton',
     'toastRegion'
   ].forEach((id) => {
     els[id] = document.getElementById(id);
@@ -186,9 +200,13 @@ function bindStaticEvents() {
   els.reservationCloseButton.addEventListener('click', closeReservationModal);
   els.reservationForm.addEventListener('submit', saveReservationFromForm);
   els.deleteReservationButton.addEventListener('click', requestDeleteReservation);
-  els.copyReservationButton.addEventListener('click', copyCurrentFormDetails);
+  [els.agreeRules, els.agreePrivacy, els.agreeCommand].forEach((checkbox) => {
+    checkbox.addEventListener('change', updateAgreementSubmitState);
+  });
+  els.agreementCloseButton.addEventListener('click', closeAgreementModal);
+  els.agreementCancelButton.addEventListener('click', closeAgreementModal);
+  els.agreementSubmitButton.addEventListener('click', submitAgreementReservation);
   els.detailsCloseButton.addEventListener('click', () => els.detailsModal.close());
-  els.detailsCopyButton.addEventListener('click', () => copyDetailsFromDialog());
   els.detailsEditButton.addEventListener('click', openEditFromDetails);
   els.conflictCloseButton.addEventListener('click', () => els.conflictModal.close());
   els.conflictOkButton.addEventListener('click', () => els.conflictModal.close());
@@ -217,6 +235,11 @@ function bindStaticEvents() {
   els.copyTemporaryPasswordButton.addEventListener('click', () => copyText(els.temporaryPasswordValue.textContent));
   els.activityLogButton.addEventListener('click', openActivityLog);
   els.activityCloseButton.addEventListener('click', () => els.activityLogModal.close());
+  els.reservationListButton.addEventListener('click', openReservationList);
+  els.reservationListCloseButton.addEventListener('click', () => els.reservationListModal.close());
+  els.reservationList.addEventListener('click', handleReservationListAction);
+  els.aboutButton.addEventListener('click', () => els.aboutModal.showModal());
+  els.aboutCloseButton.addEventListener('click', () => els.aboutModal.close());
   window.addEventListener('resize', debounce(handleResize, 160));
   window.addEventListener('orientationchange', () => setTimeout(handleResize, 260));
 }
@@ -364,9 +387,12 @@ async function loadSchedule() {
 
   try {
     const shouldLoadLogs = isAdmin();
+    const reservationsQuery = isAdmin()
+      ? supabaseClient.from('reservations').select('*').order('start_time', { ascending: true })
+      : loadStudentCalendarReservations();
     const [reservations, blockedTimes, activityLogs, adminRequests, passwordResetRequests] =
       await runSupabaseQueries([
-        supabaseClient.from('reservations').select('*').order('start_time', { ascending: true }),
+        reservationsQuery,
         supabaseClient.from('blocked_times').select('*').order('start_time', { ascending: true }),
         shouldLoadLogs
           ? supabaseClient.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(100)
@@ -389,6 +415,43 @@ async function loadSchedule() {
   } catch (error) {
     showToast(`Could not load Supabase data: ${error.message}`, 'error');
   }
+}
+
+async function loadStudentCalendarReservations() {
+  const result = await supabaseClient.rpc('get_calendar_reservations');
+  if (!result.error) return result;
+  if (isMissingSupabaseObjectError(result.error, 'get_calendar_reservations')) {
+    const fallback = await supabaseClient.from('reservations').select('*').order('start_time', { ascending: true });
+    if (fallback.error) return fallback;
+    return {
+      data: fallback.data.map(maskReservationForStudentFallback),
+      error: null
+    };
+  }
+  return result;
+}
+
+function isMissingSupabaseObjectError(error, objectName) {
+  const message = String(error?.message || '');
+  return ['42883', '42P01', 'PGRST202', 'PGRST205'].includes(error?.code)
+    || message.includes(objectName)
+    || message.includes('Could not find')
+    || message.includes('schema cache');
+}
+
+function maskReservationForStudentFallback(reservation) {
+  if (reservation.created_by === state.profile?.id) return reservation;
+  return {
+    ...reservation,
+    title: 'Reserved',
+    organization: null,
+    people_involved: null,
+    purpose: null,
+    notes: null,
+    account_email: null,
+    created_by: null,
+    reserved_by_name: null
+  };
 }
 
 async function runSupabaseQueries(queries) {
@@ -416,7 +479,7 @@ function getVisibleEvents() {
     .filter((reservation) => matchesSearch(reservation, searchTerm))
     .map((reservation) => ({
       id: reservation.id,
-      title: reservation.title,
+      title: getReservationDisplayTitle(reservation),
       start: reservation.start_time,
       end: reservation.end_time,
       classNames: [`event-${reservation.status}`],
@@ -434,7 +497,7 @@ function getVisibleEvents() {
     .filter((blocked) => matchesSearch(blocked, searchTerm))
     .map((blocked) => ({
       id: blocked.id,
-      title: blocked.title || 'Blocked time',
+      title: isAdmin() ? (blocked.title || 'Blocked time') : 'Reserved - CSC Conference Room',
       start: blocked.start_time,
       end: blocked.end_time,
       classNames: ['event-blocked'],
@@ -480,9 +543,8 @@ function openReservationModal(range, options = {}) {
 
   els.reservationForm.reset();
   els.reservationId.value = record?.id || '';
-  els.reservationModalTitle.textContent = record ? 'Edit Reservation' : type === 'blocked' ? 'Block Time' : 'Create Reservation';
+  els.reservationModalTitle.textContent = record ? 'Edit Reservation' : type === 'blocked' ? 'Block Time' : ROOM_NAME;
   els.reservationType.value = type;
-  els.reservationTitle.value = record?.title || (type === 'blocked' ? 'Blocked Time' : '');
   els.reservationDate.value = formatDateInput(range.start);
   els.reservationStart.value = formatTimeInput(range.start);
   els.reservationEnd.value = formatTimeInput(range.end);
@@ -490,16 +552,15 @@ function openReservationModal(range, options = {}) {
   els.reservationOrganization.value = record?.organization || '';
   els.reservationPeople.value = record?.people_involved || '';
   els.reservationPurpose.value = record?.purpose || record?.reason || '';
-  els.reservationNotes.value = record?.notes || '';
   els.reservationReservedBy.value = record?.reserved_by_name || profileName;
 
   const canEdit = type === 'blocked' ? isAdmin() : !record || canEditRecord(record);
   [...els.reservationForm.elements].forEach((element) => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) && element.type !== 'hidden' && element.id !== 'reservationReservedBy') {
-      element.disabled = !canEdit;
+      element.disabled = !canEdit || (element.id === 'reservationStatus' && !isAdmin());
     }
   });
-  els.deleteReservationButton.hidden = !record || !canEdit;
+  els.deleteReservationButton.hidden = !record || !canDeleteRecord(record, type);
   els.saveReservationButton.hidden = !canEdit;
 
   els.reservationModal.showModal();
@@ -528,6 +589,15 @@ async function saveReservationFromForm(event) {
     return;
   }
 
+  if (formData.type === 'reservation' && !isAdmin()) {
+    openAgreementModal(formData);
+    return;
+  }
+
+  await persistReservationFormData(formData);
+}
+
+async function persistReservationFormData(formData) {
   try {
     if (formData.type === 'blocked') {
       if (!isAdmin()) throw new Error('Only admins can block unavailable time.');
@@ -545,25 +615,90 @@ async function saveReservationFromForm(event) {
   }
 }
 
+function openAgreementModal(formData) {
+  state.pendingAgreementFormData = formData;
+  els.agreeRules.checked = false;
+  els.agreePrivacy.checked = false;
+  els.agreeCommand.checked = false;
+  updateAgreementSubmitState();
+  els.agreementModal.showModal();
+}
+
+function closeAgreementModal() {
+  state.pendingAgreementFormData = null;
+  els.agreementModal.close();
+}
+
+function updateAgreementSubmitState() {
+  els.agreementSubmitButton.disabled = !(els.agreeRules.checked && els.agreePrivacy.checked && els.agreeCommand.checked);
+}
+
+async function submitAgreementReservation() {
+  if (els.agreementSubmitButton.disabled || !state.pendingAgreementFormData) return;
+  const formData = {
+    ...state.pendingAgreementFormData,
+    agreements: {
+      accepted_rules: true,
+      accepted_data_privacy: true,
+      accepted_chain_of_command: true
+    }
+  };
+  state.pendingAgreementFormData = null;
+  els.agreementModal.close();
+  await persistReservationFormData(formData);
+}
+
 async function saveReservation(formData) {
   const payload = {
-    title: formData.title,
+    title: ROOM_NAME,
     start_time: formData.start.toISOString(),
     end_time: formData.end.toISOString(),
     organization: formData.organization,
     people_involved: formData.people,
     purpose: formData.purpose,
-    notes: formData.notes,
     status: formData.status,
     reserved_by_name: formData.reservedBy,
+    account_email: state.currentUser?.email || '',
+    accepted_rules: isAdmin() || Boolean(formData.agreements?.accepted_rules),
+    accepted_data_privacy: isAdmin() || Boolean(formData.agreements?.accepted_data_privacy),
+    accepted_chain_of_command: isAdmin() || Boolean(formData.agreements?.accepted_chain_of_command),
     created_by: formData.existing?.created_by || state.profile.id
   };
 
   const query = supabaseClient.from('reservations');
-  const { error } = formData.id
+  let savedReservationId = formData.id;
+  let result = formData.id
     ? await query.update(payload).eq('id', formData.id)
-    : await query.insert(payload);
+    : await query.insert(payload).select('id').single();
+  if (result.error && ['account_email', 'accepted_rules', 'accepted_data_privacy', 'accepted_chain_of_command']
+    .some((column) => String(result.error.message || '').includes(column))) {
+    delete payload.account_email;
+    delete payload.accepted_rules;
+    delete payload.accepted_data_privacy;
+    delete payload.accepted_chain_of_command;
+    result = formData.id
+      ? await query.update(payload).eq('id', formData.id)
+      : await query.insert(payload).select('id').single();
+  }
+  if (!formData.id) savedReservationId = result.data?.id || null;
+  const { error } = result;
   if (error) throw error;
+  if (formData.agreements && savedReservationId) {
+    await saveReservationAgreements(savedReservationId, formData.agreements);
+  }
+}
+
+async function saveReservationAgreements(reservationId, agreements) {
+  const payload = {
+    user_id: state.profile.id,
+    reservation_id: reservationId,
+    accepted_rules: agreements.accepted_rules,
+    accepted_data_privacy: agreements.accepted_data_privacy,
+    accepted_chain_of_command: agreements.accepted_chain_of_command,
+    accepted_at: new Date().toISOString()
+  };
+  const { error } = await supabaseClient.from('reservation_agreements').insert(payload);
+  if (error && !isMissingSupabaseObjectError(error, 'reservation_agreements')) throw error;
 }
 
 async function saveBlockedTime(formData) {
@@ -595,29 +730,38 @@ function getReservationFormData() {
     id,
     type,
     existing,
-    title: els.reservationTitle.value.trim(),
+    title: ROOM_NAME,
     start,
     end,
     status: els.reservationStatus.value,
     organization: els.reservationOrganization.value.trim(),
     people: els.reservationPeople.value.trim(),
     purpose: els.reservationPurpose.value.trim(),
-    notes: els.reservationNotes.value.trim(),
     reservedBy: els.reservationReservedBy.value.trim() || state.profile?.full_name || state.currentUser?.email || 'Unknown'
   };
 }
 
 function validateReservation(formData) {
-  if (!formData.title) return { ok: false, message: 'Meeting title is required.' };
-  if (!formData.purpose) return { ok: false, message: 'Purpose is required.' };
-  if (!formData.start || !formData.end || Number.isNaN(formData.start.getTime()) || Number.isNaN(formData.end.getTime())) {
-    return { ok: false, message: 'Choose a valid date and time.' };
+  if (!formData.reservedBy || !formData.organization || !formData.people || !formData.purpose) {
+    return { ok: false, message: 'Please complete all required fields before submitting your reservation.' };
   }
-  if (formData.start >= formData.end) return { ok: false, message: 'Start time must be before end time.' };
+  if (!formData.start || !formData.end || Number.isNaN(formData.start.getTime()) || Number.isNaN(formData.end.getTime())) {
+    return { ok: false, message: 'Please complete all required fields before submitting your reservation.' };
+  }
+  if (formData.start >= formData.end) return { ok: false, message: 'End time must be later than start time.' };
   if (formData.start < new Date()) return { ok: false, message: 'Reservations cannot be created in the past.' };
   if (!isWeekday(formData.start)) return { ok: false, message: 'Reservations are limited to Monday through Friday.' };
   if (!isWithinSchoolHours(formData.start, formData.end)) {
     return { ok: false, message: 'Reservations must be between 8:00 AM and 5:00 PM.' };
+  }
+  if (formData.type === 'reservation' && !isAdmin()) {
+    const durationHours = (formData.end - formData.start) / 36e5;
+    if (durationHours > MAX_STUDENT_BOOKING_HOURS) {
+      return { ok: false, message: 'Student reservations are limited to a maximum of 5 hours.' };
+    }
+    if (!formData.id && countStudentReservationsThisWeek(formData.start) >= MAX_STUDENT_BOOKINGS_PER_WEEK) {
+      return { ok: false, message: 'You have reached the maximum limit of 2 reservations this week.' };
+    }
   }
   const advanceHours = (formData.start - new Date()) / 36e5;
   if (!formData.id && advanceHours < MIN_ADVANCE_HOURS) {
@@ -652,10 +796,9 @@ function findConflict(start, end, excludeId) {
 
 function showConflict(conflict) {
   els.conflictBody.innerHTML = `
-    <strong>${escapeHtml(conflict.title)}</strong>
+    <strong>This time slot is already reserved. Please choose another schedule.</strong>
     <p>${formatDateTime(conflict.start)} - ${formatTime(conflict.end)}</p>
-    <p>Reserved by: ${escapeHtml(conflict.reservedBy)}</p>
-    <p>This conference room has only one reservable schedule at a time. Please choose another time.</p>
+    <p>${escapeHtml(isAdmin() ? conflict.title : ROOM_NAME)}</p>
   `;
   els.conflictModal.showModal();
 }
@@ -664,24 +807,32 @@ function openDetailsModal(event) {
   const { record, type } = event.extendedProps;
   const isBlocked = type === 'blocked';
   const canEdit = isBlocked ? isAdmin() : canEditRecord(record);
+  const canViewPrivate = isBlocked ? isAdmin() : canViewPrivateRecord(record);
   const start = new Date(event.start);
   const end = new Date(event.end);
 
-  els.detailsTitle.textContent = event.title;
+  els.detailsTitle.textContent = canViewPrivate ? getReservationDisplayTitle(record) : 'Reserved';
   els.detailsMeta.textContent = `${formatDateTime(start)} - ${formatTime(end)}`;
-  els.detailsList.innerHTML = detailsRows({
-    Status: isBlocked ? 'Blocked' : capitalize(record.status),
-    Room: 'AUP School Conference Room',
-    Organization: record.organization || 'Not provided',
-    'People involved': record.people_involved || 'Not provided',
-    Purpose: record.purpose || record.reason || 'Not provided',
-    Notes: record.notes || 'None',
-    'Reserved by': record.reserved_by_name || 'AUP Admin'
-  });
+  els.detailsList.innerHTML = canViewPrivate
+    ? detailsRows({
+      Status: isBlocked ? 'Blocked' : capitalize(record.status),
+      Room: ROOM_NAME,
+      Organization: record.organization || 'Not provided',
+      'Number of People Involved': record.people_involved || 'Not provided',
+      'Purpose of Meeting': record.purpose || record.reason || 'Not provided',
+      'Student Name': record.reserved_by_name || 'CSC Officer/Admin',
+      Email: isAdmin() ? (record.account_email || 'Not recorded') : 'Private'
+    })
+    : detailsRows({
+      Status: 'Reserved',
+      Room: ROOM_NAME,
+      Date: start.toLocaleDateString(),
+      'Start Time': formatTime(start),
+      'End Time': formatTime(end)
+    });
   els.detailsEditButton.hidden = !canEdit;
   els.detailsEditButton.dataset.eventId = event.id;
   els.detailsEditButton.dataset.eventType = type;
-  els.detailsCopyButton.dataset.details = buildDetailsText(record, start, end, isBlocked);
   els.detailsModal.showModal();
 }
 
@@ -701,13 +852,17 @@ function openEditFromDetails() {
 }
 
 function requestDeleteReservation() {
+  if (!isAdmin()) {
+    showToast('Unauthorized action. Only CSC Officers/Admins may delete reservations.', 'error');
+    return;
+  }
   const id = els.reservationId.value;
   if (!id) return;
   state.pendingDeleteId = id;
   const isBlocked = els.reservationType.value === 'blocked';
   els.confirmMessage.textContent = isBlocked
-    ? 'Delete this blocked time from the school conference room schedule?'
-    : 'Delete this reservation from the school conference room schedule?';
+    ? 'Delete this blocked time from the CSC Conference Room schedule?'
+    : 'Delete this reservation from the CSC Conference Room schedule?';
   els.confirmModal.showModal();
 }
 
@@ -728,7 +883,7 @@ async function deleteReservation() {
       const { error } = await supabaseClient.from('blocked_times').delete().eq('id', id);
       if (error) throw error;
     } else if (reservation) {
-      if (!canEditRecord(reservation)) throw new Error('You can only delete your own reservation.');
+      if (!isAdmin()) throw new Error('Unauthorized action. Only CSC Officers/Admins may delete reservations.');
       const { error } = await supabaseClient.from('reservations').delete().eq('id', id);
       if (error) throw error;
     }
@@ -751,8 +906,11 @@ function canMoveEvent(event, start, end) {
   const validation = validateReservation({
     id: event.id,
     type,
-    title: event.title,
+    title: ROOM_NAME,
     purpose: record.purpose || record.reason || 'Blocked',
+    organization: record.organization || 'CSC',
+    people: record.people_involved || '1',
+    reservedBy: record.reserved_by_name || state.profile?.full_name || 'CSC Officer/Admin',
     start,
     end
   });
@@ -771,9 +929,8 @@ async function persistMovedEvent(info) {
     end: info.event.end,
     organization: record.organization || '',
     people: record.people_involved || '',
-    notes: record.notes || '',
     status: record.status || 'confirmed',
-    reservedBy: record.reserved_by_name || state.profile?.full_name || 'AUP Admin',
+    reservedBy: record.reserved_by_name || state.profile?.full_name || 'CSC Officer/Admin',
     existing: record
   };
 
@@ -991,7 +1148,7 @@ async function fetchProfile(userId) {
 
 function requireReservationAccount() {
   if (state.profile) return true;
-  showToast('Please login before reserving the conference room.', 'error');
+  showToast('Please login before reserving the CSC Conference Room.', 'error');
   return false;
 }
 
@@ -1017,6 +1174,39 @@ function canEditRecord(record) {
   return isAdmin() || record.created_by === state.profile?.id;
 }
 
+function canDeleteRecord(_record, type = 'reservation') {
+  return isAdmin() && ['reservation', 'blocked'].includes(type);
+}
+
+function canViewPrivateRecord(record) {
+  return isAdmin() || record.created_by === state.profile?.id;
+}
+
+function getReservationDisplayTitle(record) {
+  if (!record || !canViewPrivateRecord(record)) return `Reserved - ${ROOM_NAME}`;
+  return record.title || ROOM_NAME;
+}
+
+function countStudentReservationsThisWeek(date) {
+  const { start, end } = getWeekRange(date);
+  return state.reservations.filter((reservation) => {
+    if (reservation.id && reservation.status !== 'confirmed') return false;
+    if (reservation.created_by !== state.profile?.id) return false;
+    const reservationStart = new Date(reservation.start_time);
+    return reservationStart >= start && reservationStart < end;
+  }).length;
+}
+
+function getWeekRange(date) {
+  const start = new Date(date);
+  const dayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - dayOffset);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  return { start, end };
+}
+
 function updateAvailability() {
   const now = new Date();
   const active = [
@@ -1032,7 +1222,7 @@ function updateAvailability() {
   if (active) {
     card.classList.add('busy');
     els.availabilityStatus.textContent = `In Use Until ${formatTime(new Date(active.end_time))}`;
-    els.availabilityDetail.textContent = active.title || active.reason || 'Conference room unavailable';
+    els.availabilityDetail.textContent = isAdmin() ? (active.title || active.reason || 'Conference room unavailable') : `${ROOM_NAME} is reserved.`;
   } else {
     card.classList.remove('busy');
     els.availabilityStatus.textContent = 'Available Now';
@@ -1201,6 +1391,18 @@ function renderRequestList({
   });
 }
 
+function buildActivityDescription(log) {
+  const payload = log.new_value || log.old_value || {};
+  const studentName = log.student_name || payload.reserved_by_name || 'A student';
+  const action = String(log.action || 'updated').replaceAll('_', ' ');
+  const start = payload.start_time ? new Date(payload.start_time) : null;
+  const end = payload.end_time ? new Date(payload.end_time) : null;
+  const timeText = start && end
+    ? ` on ${start.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}, from ${formatTime(start)} to ${formatTime(end)}`
+    : '';
+  return `${studentName} ${action} a reservation for the ${ROOM_NAME}${timeText}.`;
+}
+
 async function handlePasswordResetRequestAction(event) {
   const button = event.target.closest('[data-reset-action]');
   if (!button) return;
@@ -1243,6 +1445,62 @@ function closeTemporaryPasswordModal() {
   els.temporaryPasswordModal.close();
 }
 
+function openReservationList() {
+  if (!isAdmin()) {
+    showToast('Only CSC Officers/Admins can view the full reservation list.', 'error');
+    return;
+  }
+  renderReservationList();
+  els.reservationListModal.showModal();
+}
+
+function renderReservationList() {
+  els.reservationList.innerHTML = '';
+  if (!state.reservations.length) {
+    els.reservationList.innerHTML = '<div class="activity-item"><strong>No reservations found</strong><p>Reservations will appear here after students book the room.</p></div>';
+    return;
+  }
+
+  [...state.reservations]
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+    .forEach((reservation) => {
+      const start = new Date(reservation.start_time);
+      const end = new Date(reservation.end_time);
+      const item = document.createElement('div');
+      item.className = 'activity-item request-item';
+      item.innerHTML = `
+        <strong>${escapeHtml(reservation.reserved_by_name || 'Unnamed student')}</strong>
+        <p>${escapeHtml(reservation.organization || 'No organization')} - ${formatDateTime(start)} to ${formatTime(end)}</p>
+        <p>${escapeHtml(reservation.purpose || 'No purpose recorded')}</p>
+        <div class="request-actions">
+          <button type="button" class="secondary-button" data-reservation-action="edit" data-reservation-id="${reservation.id}">Edit</button>
+          <button type="button" class="danger-button" data-reservation-action="delete" data-reservation-id="${reservation.id}">Delete</button>
+        </div>
+      `;
+      els.reservationList.appendChild(item);
+    });
+}
+
+function handleReservationListAction(event) {
+  const button = event.target.closest('[data-reservation-action]');
+  if (!button || !isAdmin()) return;
+  const reservation = state.reservations.find((item) => item.id === button.dataset.reservationId);
+  if (!reservation) return;
+
+  if (button.dataset.reservationAction === 'edit') {
+    els.reservationListModal.close();
+    openReservationModal(
+      { start: new Date(reservation.start_time), end: new Date(reservation.end_time) },
+      { record: reservation, type: 'reservation' }
+    );
+    return;
+  }
+
+  state.pendingDeleteId = reservation.id;
+  els.confirmMessage.textContent = 'Delete this reservation from the CSC Conference Room schedule?';
+  els.confirmModal.showModal();
+}
+
 function openActivityLog() {
   if (!isAdmin()) {
     showToast('Activity history is available to admin users.', 'error');
@@ -1257,10 +1515,12 @@ function openActivityLog() {
     logs.forEach((log) => {
       const item = document.createElement('div');
       item.className = 'activity-item';
+      const description = log.description || buildActivityDescription(log);
       item.innerHTML = `
-        <strong>${escapeHtml(log.action)}</strong>
+        <strong>${escapeHtml(capitalize(String(log.action || 'activity').replaceAll('_', ' ')))}</strong>
         <p>${formatDateTime(new Date(log.created_at))}</p>
-        <p>${escapeHtml(log.new_value?.title || log.reservation_id || 'Schedule update')}</p>
+        <p>${escapeHtml(description)}</p>
+        <p>${escapeHtml(log.student_name || log.new_value?.reserved_by_name || 'Student not recorded')} - ${escapeHtml(log.organization || log.new_value?.organization || 'Organization not recorded')}</p>
       `;
       els.activityList.appendChild(item);
     });
@@ -1313,6 +1573,13 @@ function updateResponsiveViewOptions() {
 
 function matchesSearch(record, term) {
   if (!term) return true;
+  if (!isAdmin() && record.created_by !== state.profile?.id) {
+    return [
+      'reserved',
+      ROOM_NAME,
+      record.status
+    ].some((value) => String(value || '').toLowerCase().includes(term));
+  }
   return [
     record.title,
     record.organization,
@@ -1433,9 +1700,9 @@ function detailsRows(rows) {
 function buildDetailsText(record, start, end, isBlocked) {
   return [
     `${isBlocked ? 'Blocked time' : 'Reservation'}: ${record.title}`,
-    `Room: AUP School Conference Room`,
+    `Room: ${ROOM_NAME}`,
     `Time: ${formatDateTime(start)} - ${formatTime(end)}`,
-    `Reserved by: ${record.reserved_by_name || 'AUP Admin'}`,
+    `Reserved by: ${record.reserved_by_name || 'CSC Officer/Admin'}`,
     `Purpose: ${record.purpose || record.reason || 'Not provided'}`
   ].join('\n');
 }
@@ -1444,7 +1711,7 @@ async function copyCurrentFormDetails() {
   const formData = getReservationFormData();
   const text = buildDetailsText(
     {
-      title: formData.title,
+      title: ROOM_NAME,
       reserved_by_name: formData.reservedBy,
       purpose: formData.purpose
     },
@@ -1453,10 +1720,6 @@ async function copyCurrentFormDetails() {
     formData.type === 'blocked'
   );
   await copyText(text);
-}
-
-async function copyDetailsFromDialog() {
-  await copyText(els.detailsCopyButton.dataset.details || '');
 }
 
 async function copyText(text) {

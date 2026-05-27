@@ -1,23 +1,26 @@
-# AUP Conference Room Calendar
+# CORE: Conference Room Reservation Engine
 
-A Google Calendar-inspired schoolwide reservation system for the single school conference room at Adventist University of the Philippines. There is no reservation approval workflow: if a slot is free and follows the rules, the reservation is saved immediately as confirmed.
+CORE is a CSC Conference Room scheduling system for Adventist University of the Philippines. Students can reserve available slots after logging in, while CSC Officers/Admins control reservations, user access, privacy, blocked times, and activity logs.
 
 ## Features
 
-- AUP blue-and-gold dashboard inspired by Google Calendar
-- FullCalendar day, week, month, year, and agenda views
+- CSC/CORE dashboard inspired by Google Calendar
+- FullCalendar week, month, year, and agenda views
 - Desktop drag-to-select reservation creation
 - Mobile tap-to-create fallback with editable time fields
 - Supabase Auth login/register flow using student number and password
 - Supabase PostgreSQL tables, RLS policies, activity logs, and overlap-prevention triggers
-- Student and admin role behavior with admin approval for new admin accounts
+- Student and CSC Officer/Admin role behavior with admin approval for new admin accounts
+- Privacy-aware student calendar display that hides other students' private reservation details
+- Required CSC rules, data privacy, and chain-of-command agreement before student bookings
+- Student limits: maximum 5 hours per reservation and 2 reservations per Monday-Sunday week
 - No duplicate student-number accounts
 - Admin-handled forgotten-password requests through a Supabase Edge Function
 - One-room scheduling only, with no room/resource selector
 - No-overlap validation in both frontend JavaScript and database triggers
 - Current availability indicator: Available Now or In Use Until
 - Admin blocked time slots for maintenance, exams, school use, cleaning, and events
-- Search, filters, reservation details, copy details, deletion confirmation, and toast messages
+- Search, filters, reservation details, deletion confirmation, activity logs, About CORE, and toast messages
 
 ## Tech Stack
 
@@ -49,7 +52,7 @@ Open `index.html` in a browser, or serve the folder with any static server:
 npx serve conference-room-calendar
 ```
 
-The app starts on the login/create-account page. This project is already wired to Supabase in `supabaseClient.js`.
+The app starts on the CORE login/create-account page. This project is already wired to Supabase in `supabaseClient.js`.
 
 ## Supabase Setup
 
@@ -113,7 +116,7 @@ where student_number = 'aupadmin001';
 
 The connected Supabase project already has this starter admin account. After the starter admin exists, future admin accounts must be requested from the create-account page and approved by an existing admin. Students cannot directly make themselves admins.
 
-Students can view all reservations, create confirmed reservations when the slot is free, and edit or delete only their own reservations. Admins can create, edit, move, resize, or delete any reservation, manage blocked times, and view activity history.
+Students can view reserved/available time slots, create confirmed reservations when the slot is free, and view full details for their own reservations only. Students cannot delete reservations. CSC Officers/Admins can create, edit, move, resize, override student limits, or delete any reservation, manage blocked times, and view activity history.
 
 ## Forgotten Passwords
 
@@ -138,13 +141,15 @@ The temporary password is not stored in the database. The admin should give it t
 - No past reservations
 - Monday to Friday only
 - School hours: 8:00 AM to 5:00 PM
-- Meeting title and purpose are required
+- Student name, organization, date, start time, end time, number of people involved, and purpose are required
 - Start time must be before end time
-- No maximum duration inside school hours
+- Student reservations are limited to 5 hours
+- Students are limited to 2 reservations per Monday-Sunday week
 - Minimum advance booking: 1 day
 - Confirmed reservations and blocked times prevent overlaps
 - Deleted reservations are removed from the schedule immediately
 - Completed reservations do not block future scheduling
+- CSC Officers/Admins are not restricted by the 5-hour or 2-per-week student limits
 
 Overlap logic:
 
@@ -156,7 +161,7 @@ The same rule is enforced in `schema.sql` with PostgreSQL triggers, so users can
 
 ## Mobile Notes
 
-Desktop defaults to week view. Phones default to day view for readability and touch selection. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and submenu panels use the full screen. If touch drag selection is difficult on a device, tap a time slot or use `+ Create`, then manually adjust the date and time fields.
+Desktop and phones default to week view. Day view is removed from the UI. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and submenu panels use the full screen. If touch drag selection is difficult on a device, tap a time slot or use `+ CSC Conference Room`, then manually adjust the date and time fields.
 
 Recommended test widths:
 
@@ -174,4 +179,50 @@ This is a static frontend. Deploy the `conference-room-calendar` folder to:
 - Netlify by dragging the folder into the deploy page
 - GitHub Pages from the folder or repository root
 
-Make sure `supabaseClient.js` contains your Supabase URL and anon key before deployment. Keep RLS enabled in Supabase; the anon key is safe for browser use only when RLS policies protect the database.
+Make sure `supabaseClient.js` contains the official CSC Supabase URL and publishable/anon key before deployment. Keep RLS enabled in Supabase; the anon key is safe for browser use only when RLS policies protect the database.
+
+## CORE Turnover and Hosting
+
+CORE should be deployed from an official CSC hosting account whenever possible, not only a personal account. CSC should own or have documented access to:
+
+- GitHub repository or source-code handover archive
+- GitHub Pages, Netlify, Vercel, or equivalent hosting project
+- Supabase project ownership
+- CSC Officer/Admin account transfer
+- Database backup access and restore process
+- Edge Function deployment access
+- Secure credential handover records
+- Future maintenance and update process
+
+Official turnover details:
+
+- System name: CORE - Conference Room Reservation Engine
+- System purpose: secure scheduling and monitoring for the CSC Conference Room
+- Developer/s: Lanz Ordoña
+- Turnover date: May 27, 2026
+- CSC representative: assigned Central Student Council officer
+- Institution: Adventist University of the Philippines
+
+Initial publishing and maintenance of the CORE web application shall be handled by Lanz Ordoña unless officially transferred to another assigned CSC technical officer.
+
+## Data Privacy and Chain of Command
+
+Reservation information is used only for CSC Conference Room scheduling, reservation verification, documentation, and administrative monitoring. Full private reservation details are visible only to the owning student and authorized CSC Officers/Admins.
+
+Students must agree to:
+
+- the CSC Conference Room Rules and Agreement
+- the Data Privacy Agreement
+- the proper CSC process and chain of command
+
+## Required Supabase Update
+
+After pulling these files, run the updated `schema.sql` in the Supabase SQL editor for the official CSC project. The schema adds:
+
+- `account_email` on reservations
+- reservation agreement records
+- privacy-aware `get_calendar_reservations()` RPC
+- admin-only reservation delete RLS
+- student booking-limit trigger
+- richer activity log fields and descriptions
+- settings for booking limits and room name
