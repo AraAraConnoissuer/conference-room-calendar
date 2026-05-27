@@ -39,6 +39,11 @@ body {
   letter-spacing: 0;
 }
 
+body.auth-active {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -71,9 +76,9 @@ button {
   background-position: center;
   display: flex;
   flex-direction: column;
+  height: auto;
   min-height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   padding: 34px 18px;
   position: relative;
   animation: authBackgroundCycle 24s infinite;
@@ -1034,6 +1039,11 @@ body.is-admin label.admin-only {
   html,
   body {
     overflow: hidden;
+  }
+
+  body.auth-active {
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .app-shell {

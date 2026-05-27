@@ -276,6 +276,7 @@ async function refreshAuthState(session) {
 async function renderAuthState() {
   const isSignedIn = Boolean(state.profile);
   const mustChangePassword = isSignedIn && requiresPasswordChange();
+  document.body.classList.toggle('auth-active', !isSignedIn);
   els.authScreen.hidden = isSignedIn;
   els.appShell.hidden = !isSignedIn || mustChangePassword;
   els.authSetupNotice.hidden = Boolean(supabaseClient);
