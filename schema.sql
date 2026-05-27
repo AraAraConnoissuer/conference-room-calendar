@@ -308,7 +308,7 @@ begin
     raise exception 'Student reservations are limited to a maximum of 5 hours.' using errcode = '22023';
   end if;
 
-  if not (new.accepted_rules and new.accepted_data_privacy and new.accepted_chain_of_command) then
+  if not (new.accepted_rules and new.accepted_data_privacy) then
     raise exception 'CSC Conference Room Rules and Agreement must be accepted before submitting your reservation.' using errcode = '22023';
   end if;
 
@@ -512,18 +512,6 @@ begin
       new.reservation_id,
       'data_privacy_agreement_accepted',
       coalesce(v_reservation.reserved_by_name, 'A student') || ' accepted the Data Privacy Agreement.',
-      new.user_id,
-      coalesce(v_actor.full_name, 'Unknown user'),
-      coalesce(v_actor.role, 'student'),
-      to_jsonb(new)
-    ),
-    (
-      new.user_id,
-      v_reservation.reserved_by_name,
-      v_reservation.organization,
-      new.reservation_id,
-      'chain_of_command_agreement_accepted',
-      coalesce(v_reservation.reserved_by_name, 'A student') || ' accepted the proper CSC process and chain of command.',
       new.user_id,
       coalesce(v_actor.full_name, 'Unknown user'),
       coalesce(v_actor.role, 'student'),
@@ -744,7 +732,6 @@ with check (
   user_id = auth.uid()
   and accepted_rules
   and accepted_data_privacy
-  and accepted_chain_of_command
 );
 
 drop policy if exists "Users read own agreements or admins read all" on public.reservation_agreements;

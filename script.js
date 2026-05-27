@@ -128,7 +128,6 @@ function cacheElements() {
     'agreementWarning',
     'agreeRules',
     'agreePrivacy',
-    'agreeCommand',
     'detailsModal',
     'detailsTitle',
     'detailsMeta',
@@ -203,7 +202,7 @@ function bindStaticEvents() {
   els.reservationCloseButton.addEventListener('click', closeReservationModal);
   els.reservationForm.addEventListener('submit', saveReservationFromForm);
   els.deleteReservationButton.addEventListener('click', requestDeleteReservation);
-  [els.agreeRules, els.agreePrivacy, els.agreeCommand].forEach((checkbox) => {
+  getAgreementCheckboxes().forEach((checkbox) => {
     checkbox.addEventListener('change', updateAgreementSubmitState);
   });
   els.agreementCloseButton.addEventListener('click', closeAgreementModal);
@@ -624,7 +623,6 @@ function openAgreementModal(formData) {
   state.pendingAgreementFormData = formData;
   els.agreeRules.checked = false;
   els.agreePrivacy.checked = false;
-  els.agreeCommand.checked = false;
   updateAgreementSubmitState();
   els.agreementModal.showModal();
 }
@@ -635,7 +633,7 @@ function closeAgreementModal() {
 }
 
 function updateAgreementSubmitState() {
-  const agreementCheckboxes = [els.agreeRules, els.agreePrivacy, els.agreeCommand];
+  const agreementCheckboxes = getAgreementCheckboxes();
   const isAccepted = agreementCheckboxes.every((checkbox) => checkbox.checked);
   els.agreementSubmitButton.disabled = !isAccepted;
   els.agreementWarning.hidden = isAccepted;
@@ -650,13 +648,16 @@ async function submitAgreementReservation() {
     ...state.pendingAgreementFormData,
     agreements: {
       accepted_rules: true,
-      accepted_data_privacy: true,
-      accepted_chain_of_command: true
+      accepted_data_privacy: true
     }
   };
   state.pendingAgreementFormData = null;
   els.agreementModal.close();
   await persistReservationFormData(formData);
+}
+
+function getAgreementCheckboxes() {
+  return [els.agreeRules, els.agreePrivacy].filter(Boolean);
 }
 
 async function saveReservation(formData) {
@@ -672,7 +673,6 @@ async function saveReservation(formData) {
     account_email: state.currentUser?.email || '',
     accepted_rules: isAdmin() || Boolean(formData.agreements?.accepted_rules),
     accepted_data_privacy: isAdmin() || Boolean(formData.agreements?.accepted_data_privacy),
-    accepted_chain_of_command: isAdmin() || Boolean(formData.agreements?.accepted_chain_of_command),
     created_by: formData.existing?.created_by || state.profile.id
   };
 
@@ -681,12 +681,11 @@ async function saveReservation(formData) {
   let result = formData.id
     ? await query.update(payload).eq('id', formData.id)
     : await query.insert(payload).select('id').single();
-  if (result.error && ['account_email', 'accepted_rules', 'accepted_data_privacy', 'accepted_chain_of_command']
+  if (result.error && ['account_email', 'accepted_rules', 'accepted_data_privacy']
     .some((column) => String(result.error.message || '').includes(column))) {
     delete payload.account_email;
     delete payload.accepted_rules;
     delete payload.accepted_data_privacy;
-    delete payload.accepted_chain_of_command;
     result = formData.id
       ? await query.update(payload).eq('id', formData.id)
       : await query.insert(payload).select('id').single();
@@ -705,7 +704,6 @@ async function saveReservationAgreements(reservationId, agreements) {
     reservation_id: reservationId,
     accepted_rules: agreements.accepted_rules,
     accepted_data_privacy: agreements.accepted_data_privacy,
-    accepted_chain_of_command: agreements.accepted_chain_of_command,
     accepted_at: new Date().toISOString()
   };
   const { error } = await supabaseClient.from('reservation_agreements').insert(payload);
