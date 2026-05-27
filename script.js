@@ -856,14 +856,17 @@ function openEditFromDetails() {
 }
 
 function requestDeleteFromDetails() {
-  if (!isAdmin()) {
-    showToast('Unauthorized action. Only CSC Officers/Admins may delete reservations.', 'error');
-    return;
-  }
-
   const id = els.detailsDeleteButton.dataset.eventId;
   const type = els.detailsDeleteButton.dataset.eventType || 'reservation';
   if (!id) return;
+  const record = type === 'blocked'
+    ? state.blockedTimes.find((item) => item.id === id)
+    : state.reservations.find((item) => item.id === id);
+
+  if (!canDeleteRecord(record, type)) {
+    showToast('Unauthorized action. You may only delete your own reservations.', 'error');
+    return;
+  }
 
   state.pendingDeleteId = id;
   els.confirmMessage.textContent = type === 'blocked'
@@ -873,15 +876,20 @@ function requestDeleteFromDetails() {
 }
 
 function requestDeleteReservation() {
-  if (!isAdmin()) {
-    showToast('Unauthorized action. Only CSC Officers/Admins may delete reservations.', 'error');
-    return;
-  }
   const id = els.reservationId.value;
   if (!id) return;
+  const type = els.reservationType.value || 'reservation';
+  const record = type === 'blocked'
+    ? state.blockedTimes.find((item) => item.id === id)
+    : state.reservations.find((item) => item.id === id);
+
+  if (!canDeleteRecord(record, type)) {
+    showToast('Unauthorized action. You may only delete your own reservations.', 'error');
+    return;
+  }
+
   state.pendingDeleteId = id;
-  const isBlocked = els.reservationType.value === 'blocked';
-  els.confirmMessage.textContent = isBlocked
+  els.confirmMessage.textContent = type === 'blocked'
     ? 'Delete this blocked time from the CSC Conference Room schedule?'
     : 'Delete this reservation from the CSC Conference Room schedule?';
   els.confirmModal.showModal();
@@ -904,7 +912,9 @@ async function deleteReservation() {
       const { error } = await supabaseClient.from('blocked_times').delete().eq('id', id);
       if (error) throw error;
     } else if (reservation) {
-      if (!isAdmin()) throw new Error('Unauthorized action. Only CSC Officers/Admins may delete reservations.');
+      if (!canDeleteRecord(reservation, 'reservation')) {
+        throw new Error('Unauthorized action. You may only delete your own reservations.');
+      }
       const { error } = await supabaseClient.from('reservations').delete().eq('id', id);
       if (error) throw error;
     }
@@ -1196,8 +1206,9 @@ function canEditRecord(record) {
   return isAdmin() || record.created_by === state.profile?.id;
 }
 
-function canDeleteRecord(_record, type = 'reservation') {
-  return isAdmin() && ['reservation', 'blocked'].includes(type);
+function canDeleteRecord(record, type = 'reservation') {
+  if (type === 'blocked') return isAdmin();
+  return isAdmin() || record?.created_by === state.profile?.id;
 }
 
 function canViewPrivateRecord(record) {

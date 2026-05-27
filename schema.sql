@@ -662,10 +662,10 @@ with check (created_by = auth.uid() or public.is_admin());
 
 drop policy if exists "Owners and admins delete reservations" on public.reservations;
 drop policy if exists "Admins delete reservations" on public.reservations;
-create policy "Admins delete reservations"
+create policy "Owners and admins delete reservations"
 on public.reservations for delete
 to authenticated
-using (public.is_admin());
+using (created_by = auth.uid() or public.is_admin());
 
 drop policy if exists "Admins read activity logs" on public.activity_logs;
 create policy "Admins read activity logs"

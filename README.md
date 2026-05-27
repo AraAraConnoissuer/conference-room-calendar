@@ -116,7 +116,7 @@ where student_number = 'aupadmin001';
 
 The connected Supabase project already has this starter admin account. After the starter admin exists, future admin accounts must be requested from the create-account page and approved by an existing admin. Students cannot directly make themselves admins.
 
-Students can view reserved/available time slots, create confirmed reservations when the slot is free, and view full details for their own reservations only. Students cannot delete reservations. CSC Officers/Admins can create, edit, move, resize, override student limits, or delete any reservation, manage blocked times, and view activity history.
+Students can view reserved/available time slots, create confirmed reservations when the slot is free, view full details for their own reservations only, and delete only reservations created by their own account. CSC Officers/Admins can create, edit, move, resize, override student limits, or delete any reservation, manage blocked times, and view activity history.
 
 ## Forgotten Passwords
 
@@ -222,7 +222,7 @@ After pulling these files, run the updated `schema.sql` in the Supabase SQL edit
 - `account_email` on reservations
 - reservation agreement records
 - privacy-aware `get_calendar_reservations()` RPC
-- admin-only reservation delete RLS
+- owner-or-admin reservation delete RLS
 - student booking-limit trigger
 - richer activity log fields and descriptions
 - settings for booking limits and room name
