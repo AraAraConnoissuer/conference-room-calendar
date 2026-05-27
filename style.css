@@ -81,7 +81,7 @@ button {
 
 .auth-screen::before,
 .calendar-panel::before {
-  background: url("assets/csc-logo.jpg") center / contain no-repeat;
+  background: url("assets/csc-logo.png") center / contain no-repeat;
   content: "";
   opacity: 0.045;
   pointer-events: none;
@@ -226,12 +226,14 @@ button {
 }
 
 .brand-logo {
+  background: #fff;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(7, 28, 61, 0.18);
   flex: 0 0 auto;
   height: 50px;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
+  padding: 3px;
   width: 50px;
 }
 
