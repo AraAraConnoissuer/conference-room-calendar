@@ -685,6 +685,13 @@ body.is-admin label.admin-only {
   padding: 0;
 }
 
+.agreement-modal,
+.about-modal {
+  max-height: min(820px, calc(100vh - 40px));
+  max-width: min(960px, calc(100vw - 40px));
+  width: min(960px, calc(100vw - 40px));
+}
+
 .modal::backdrop {
   background: rgba(0, 33, 71, 0.42);
 }
@@ -704,9 +711,16 @@ body.is-admin label.admin-only {
   flex-direction: column;
   max-height: min(820px, calc(100vh - 40px));
   min-height: min(820px, calc(100vh - 40px));
-  min-width: min(1180px, calc(100vw - 40px));
+  min-width: 0;
   overflow: hidden;
   width: min(1180px, calc(100vw - 40px));
+}
+
+.agreement-modal .wide-modal,
+.about-modal .wide-modal {
+  height: min(820px, calc(100vh - 40px));
+  min-height: 0;
+  width: 100%;
 }
 
 .log-modal,
