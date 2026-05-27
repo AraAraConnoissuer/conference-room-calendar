@@ -125,6 +125,7 @@ function cacheElements() {
     'agreementCloseButton',
     'agreementCancelButton',
     'agreementSubmitButton',
+    'agreementWarning',
     'agreeRules',
     'agreePrivacy',
     'agreeCommand',
@@ -634,7 +635,13 @@ function closeAgreementModal() {
 }
 
 function updateAgreementSubmitState() {
-  els.agreementSubmitButton.disabled = !(els.agreeRules.checked && els.agreePrivacy.checked && els.agreeCommand.checked);
+  const agreementCheckboxes = [els.agreeRules, els.agreePrivacy, els.agreeCommand];
+  const isAccepted = agreementCheckboxes.every((checkbox) => checkbox.checked);
+  els.agreementSubmitButton.disabled = !isAccepted;
+  els.agreementWarning.hidden = isAccepted;
+  agreementCheckboxes.forEach((checkbox) => {
+    checkbox.closest('.check-row')?.classList.toggle('needs-attention', !checkbox.checked);
+  });
 }
 
 async function submitAgreementReservation() {

@@ -903,6 +903,50 @@ body.is-admin label.admin-only {
   overflow-wrap: anywhere;
 }
 
+.agreement-warning {
+  align-items: center;
+  background: #FEF3C7;
+  border: 3px solid #B91C1C;
+  border-radius: 8px;
+  color: #7F1D1D;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 18px;
+  text-align: center;
+}
+
+.agreement-warning::before {
+  content: "!";
+  align-items: center;
+  background: #B91C1C;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  font-size: 42px;
+  font-weight: 900;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
+}
+
+.agreement-warning strong {
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.agreement-warning span {
+  font-size: 16px;
+  font-weight: 700;
+  max-width: 560px;
+}
+
+.check-row.needs-attention {
+  background: #FFF7ED;
+  border-color: rgba(185, 28, 28, 0.45);
+  box-shadow: inset 4px 0 0 #B91C1C;
+}
+
 .agreement-card,
 .about-card {
   gap: 0;
