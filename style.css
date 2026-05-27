@@ -412,25 +412,14 @@ button {
   border-radius: 999px;
   color: var(--aup-navy);
   display: flex;
-  gap: 8px;
   height: 44px;
   max-width: 190px;
-  min-width: 44px;
-  padding: 0 12px 0 5px;
+  min-width: 0;
+  padding: 0 14px;
 }
 
 .profile-pill span {
-  align-items: center;
-  background: var(--aup-gold);
-  border-radius: 50%;
-  color: var(--aup-navy);
-  display: flex;
-  flex: 0 0 34px;
-  font-size: 12px;
-  font-weight: 800;
-  height: 34px;
-  justify-content: center;
-  width: 34px;
+  display: none;
 }
 
 .profile-pill strong {
@@ -1026,12 +1015,8 @@ body.is-admin label.admin-only {
     min-width: 160px;
   }
 
-  .profile-pill strong {
-    display: none;
-  }
-
   .profile-pill {
-    padding-right: 5px;
+    display: none;
   }
 }
 
@@ -1363,10 +1348,6 @@ body.is-admin label.admin-only {
     min-width: 98px;
     padding-left: 10px;
     padding-right: 28px;
-  }
-
-  .profile-pill {
-    height: 44px;
   }
 
   .fc .fc-timegrid-axis-cushion,
