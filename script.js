@@ -21,6 +21,7 @@ const EMPTY_PASSWORD_RESETS =
   '<div class="activity-item"><strong>No pending password reset requests</strong><p>Forgotten password requests will appear here.</p></div>';
 const EMPTY_ACTIVITY_LOG =
   '<div class="activity-item"><strong>No activity yet</strong><p>Reservation actions will appear here.</p></div>';
+const OWN_RESERVATION_DELETE_MESSAGE = 'Unauthorized action. You may only delete your own reservations.';
 
 const state = {
   calendar: null,
@@ -540,7 +541,7 @@ function handleResize() {
 
 function openReservationModal(range, options = {}) {
   const profileName = state.profile?.full_name || state.currentUser?.email || 'Guest';
-  const type = options.type || 'reservation';
+  const type = normalizeRecordType(options.type);
   const record = options.record;
 
   els.reservationForm.reset();
@@ -556,7 +557,7 @@ function openReservationModal(range, options = {}) {
   els.reservationPurpose.value = record?.purpose || record?.reason || '';
   els.reservationReservedBy.value = record?.reserved_by_name || profileName;
 
-  const canEdit = type === 'blocked' ? isAdmin() : !record || canEditRecord(record);
+  const canEdit = canEditRecordType(record, type);
   [...els.reservationForm.elements].forEach((element) => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) && element.type !== 'hidden' && element.id !== 'reservationReservedBy') {
       element.disabled = !canEdit || (element.id === 'reservationStatus' && !isAdmin());
@@ -721,10 +722,8 @@ async function saveBlockedTime(formData) {
 
 function getReservationFormData() {
   const id = els.reservationId.value;
-  const type = els.reservationType.value;
-  const existing = type === 'blocked'
-    ? state.blockedTimes.find((item) => item.id === id)
-    : state.reservations.find((item) => item.id === id);
+  const type = normalizeRecordType(els.reservationType.value);
+  const existing = getScheduleRecord(type, id);
   const start = combineDateAndTime(els.reservationDate.value, els.reservationStart.value);
   const end = combineDateAndTime(els.reservationDate.value, els.reservationEnd.value);
 
@@ -807,9 +806,10 @@ function showConflict(conflict) {
 
 function openDetailsModal(event) {
   const { record, type } = event.extendedProps;
-  const isBlocked = type === 'blocked';
-  const canEdit = isBlocked ? isAdmin() : canEditRecord(record);
-  const canViewPrivate = isBlocked ? isAdmin() : canViewPrivateRecord(record);
+  const recordType = normalizeRecordType(type);
+  const isBlocked = recordType === 'blocked';
+  const canEdit = canEditRecordType(record, recordType);
+  const canViewPrivate = canViewPrivateRecordType(record, recordType);
   const start = new Date(event.start);
   const end = new Date(event.end);
 
@@ -833,19 +833,16 @@ function openDetailsModal(event) {
     });
   els.detailsEditButton.hidden = !canEdit;
   els.detailsEditButton.dataset.eventId = event.id;
-  els.detailsEditButton.dataset.eventType = type;
-  els.detailsDeleteButton.hidden = !canDeleteRecord(record, type);
+  els.detailsEditButton.dataset.eventType = recordType;
+  els.detailsDeleteButton.hidden = !canDeleteRecord(record, recordType);
   els.detailsDeleteButton.dataset.eventId = event.id;
-  els.detailsDeleteButton.dataset.eventType = type;
+  els.detailsDeleteButton.dataset.eventType = recordType;
   els.detailsModal.showModal();
 }
 
 function openEditFromDetails() {
-  const id = els.detailsEditButton.dataset.eventId;
-  const type = els.detailsEditButton.dataset.eventType;
-  const record = type === 'blocked'
-    ? state.blockedTimes.find((item) => item.id === id)
-    : state.reservations.find((item) => item.id === id);
+  const { id, type } = getDetailsActionData(els.detailsEditButton);
+  const record = getScheduleRecord(type, id);
 
   if (!record) return;
   els.detailsModal.close();
@@ -856,42 +853,27 @@ function openEditFromDetails() {
 }
 
 function requestDeleteFromDetails() {
-  const id = els.detailsDeleteButton.dataset.eventId;
-  const type = els.detailsDeleteButton.dataset.eventType || 'reservation';
-  if (!id) return;
-  const record = type === 'blocked'
-    ? state.blockedTimes.find((item) => item.id === id)
-    : state.reservations.find((item) => item.id === id);
-
-  if (!canDeleteRecord(record, type)) {
-    showToast('Unauthorized action. You may only delete your own reservations.', 'error');
-    return;
-  }
-
-  state.pendingDeleteId = id;
-  els.confirmMessage.textContent = type === 'blocked'
-    ? 'Delete this blocked time from the CSC Conference Room schedule?'
-    : 'Delete this reservation from the CSC Conference Room schedule?';
-  els.confirmModal.showModal();
+  const { id, type } = getDetailsActionData(els.detailsDeleteButton);
+  requestDeleteScheduleRecord(type, id);
 }
 
 function requestDeleteReservation() {
   const id = els.reservationId.value;
-  if (!id) return;
-  const type = els.reservationType.value || 'reservation';
-  const record = type === 'blocked'
-    ? state.blockedTimes.find((item) => item.id === id)
-    : state.reservations.find((item) => item.id === id);
+  const type = normalizeRecordType(els.reservationType.value);
+  requestDeleteScheduleRecord(type, id);
+}
 
+function requestDeleteScheduleRecord(type, id) {
+  if (!id) return;
+
+  const record = getScheduleRecord(type, id);
   if (!canDeleteRecord(record, type)) {
-    showToast('Unauthorized action. You may only delete your own reservations.', 'error');
+    showToast(OWN_RESERVATION_DELETE_MESSAGE, 'error');
     return;
   }
 
   state.pendingDeleteId = id;
-  els.confirmMessage.textContent = type === 'blocked'
-    ? 'Delete this blocked time from the CSC Conference Room schedule?'
-    : 'Delete this reservation from the CSC Conference Room schedule?';
+  els.confirmMessage.textContent = getDeleteConfirmMessage(type);
   els.confirmModal.showModal();
 }
 
@@ -903,26 +885,20 @@ function closeConfirmModal() {
 async function deleteReservation() {
   const id = state.pendingDeleteId;
   if (!id) return;
-  const reservation = state.reservations.find((item) => item.id === id);
-  const blocked = state.blockedTimes.find((item) => item.id === id);
+  const type = getScheduleRecord('blocked', id) ? 'blocked' : 'reservation';
+  const record = getScheduleRecord(type, id);
 
   try {
-    if (blocked) {
-      if (!isAdmin()) throw new Error('Only admins can remove blocked time.');
-      const { error } = await supabaseClient.from('blocked_times').delete().eq('id', id);
-      if (error) throw error;
-    } else if (reservation) {
-      if (!canDeleteRecord(reservation, 'reservation')) {
-        throw new Error('Unauthorized action. You may only delete your own reservations.');
-      }
-      const { error } = await supabaseClient.from('reservations').delete().eq('id', id);
-      if (error) throw error;
+    if (!canDeleteRecord(record, type)) {
+      throw new Error(type === 'blocked' ? 'Only admins can remove blocked time.' : OWN_RESERVATION_DELETE_MESSAGE);
     }
 
+    const table = type === 'blocked' ? 'blocked_times' : 'reservations';
+    const { error } = await supabaseClient.from(table).delete().eq('id', id);
+    if (error) throw error;
+
     state.pendingDeleteId = null;
-    els.confirmModal.close();
-    if (els.reservationModal.open) els.reservationModal.close();
-    if (els.detailsModal.open) els.detailsModal.close();
+    closeOpenDialogs(els.confirmModal, els.reservationModal, els.detailsModal);
     await loadSchedule();
     refreshCalendar();
     showToast('Schedule slot deleted.', 'success');
@@ -1206,6 +1182,11 @@ function canEditRecord(record) {
   return isAdmin() || record.created_by === state.profile?.id;
 }
 
+function canEditRecordType(record, type = 'reservation') {
+  if (type === 'blocked') return isAdmin();
+  return !record || canEditRecord(record);
+}
+
 function canDeleteRecord(record, type = 'reservation') {
   if (type === 'blocked') return isAdmin();
   return isAdmin() || record?.created_by === state.profile?.id;
@@ -1213,6 +1194,34 @@ function canDeleteRecord(record, type = 'reservation') {
 
 function canViewPrivateRecord(record) {
   return isAdmin() || record.created_by === state.profile?.id;
+}
+
+function canViewPrivateRecordType(record, type = 'reservation') {
+  if (type === 'blocked') return isAdmin();
+  return canViewPrivateRecord(record);
+}
+
+function normalizeRecordType(type) {
+  return type === 'blocked' ? 'blocked' : 'reservation';
+}
+
+function getScheduleRecord(type, id) {
+  if (!id) return null;
+  const source = normalizeRecordType(type) === 'blocked' ? state.blockedTimes : state.reservations;
+  return source.find((item) => item.id === id) || null;
+}
+
+function getDetailsActionData(button) {
+  return {
+    id: button.dataset.eventId,
+    type: normalizeRecordType(button.dataset.eventType)
+  };
+}
+
+function getDeleteConfirmMessage(type) {
+  return normalizeRecordType(type) === 'blocked'
+    ? 'Delete this blocked time from the CSC Conference Room schedule?'
+    : 'Delete this reservation from the CSC Conference Room schedule?';
 }
 
 function getReservationDisplayTitle(record) {
@@ -1730,35 +1739,10 @@ function detailsRows(rows) {
     .join('');
 }
 
-function buildDetailsText(record, start, end, isBlocked) {
-  return [
-    `${isBlocked ? 'Blocked time' : 'Reservation'}: ${record.title}`,
-    `Room: ${ROOM_NAME}`,
-    `Time: ${formatDateTime(start)} - ${formatTime(end)}`,
-    `Reserved by: ${record.reserved_by_name || 'CSC Officer/Admin'}`,
-    `Purpose: ${record.purpose || record.reason || 'Not provided'}`
-  ].join('\n');
-}
-
-async function copyCurrentFormDetails() {
-  const formData = getReservationFormData();
-  const text = buildDetailsText(
-    {
-      title: ROOM_NAME,
-      reserved_by_name: formData.reservedBy,
-      purpose: formData.purpose
-    },
-    formData.start,
-    formData.end,
-    formData.type === 'blocked'
-  );
-  await copyText(text);
-}
-
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    showToast('Reservation details copied.', 'success');
+    showToast('Copied to clipboard.', 'success');
   } catch {
     showToast('Copy is not available in this browser.', 'error');
   }
@@ -1792,6 +1776,12 @@ function debounce(callback, delay) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => callback(...args), delay);
   };
+}
+
+function closeOpenDialogs(...dialogs) {
+  dialogs.forEach((dialog) => {
+    if (dialog.open) dialog.close();
+  });
 }
 
 function withTimeout(promise, timeoutMs, message) {
