@@ -430,7 +430,7 @@ begin
       old.created_by,
       old.reserved_by_name,
       old.organization,
-      old.id,
+      null,
       'reservation_deleted',
       format('%s deleted a reservation for the CSC Conference Room on %s, from %s to %s.',
         coalesce(old.reserved_by_name, 'A student'),

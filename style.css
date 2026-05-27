@@ -15,6 +15,14 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
 }
 
 html,
@@ -65,6 +73,7 @@ button {
   flex-direction: column;
   min-height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 34px 18px;
   position: relative;
   animation: authBackgroundCycle 24s infinite;
@@ -429,6 +438,7 @@ button {
   grid-column: 1;
   grid-row: 2;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 18px;
 }
 
@@ -671,6 +681,7 @@ body.is-admin label.admin-only {
   border: 0;
   border-radius: 14px;
   max-width: min(760px, calc(100vw - 32px));
+  overflow: hidden;
   padding: 0;
 }
 
@@ -684,14 +695,17 @@ body.is-admin label.admin-only {
   border-radius: 14px;
   box-shadow: var(--shadow);
   min-width: min(720px, calc(100vw - 32px));
+  overflow: hidden;
   padding: 22px;
 }
 
 .wide-modal {
   display: flex;
   flex-direction: column;
+  max-height: min(820px, calc(100vh - 40px));
   min-height: min(820px, calc(100vh - 40px));
   min-width: min(1180px, calc(100vw - 40px));
+  overflow: hidden;
   width: min(1180px, calc(100vw - 40px));
 }
 
@@ -815,6 +829,7 @@ body.is-admin label.admin-only {
   gap: 10px;
   grid-template-columns: 150px minmax(0, 1fr);
   margin: 0;
+  min-width: 0;
 }
 
 .details-list dt {
@@ -846,7 +861,7 @@ body.is-admin label.admin-only {
   border-radius: 8px;
   flex: 1;
   min-height: 0;
-  overflow: visible;
+  overflow: auto;
 }
 
 .agreement-body,
@@ -854,7 +869,10 @@ body.is-admin label.admin-only {
   display: grid;
   gap: 16px;
   line-height: 1.45;
-  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-right: 4px;
 }
 
@@ -872,6 +890,7 @@ body.is-admin label.admin-only {
 .agreement-body p,
 .about-sections p {
   margin: 5px 0;
+  overflow-wrap: anywhere;
 }
 
 .agreement-card,
@@ -1175,6 +1194,7 @@ body.is-admin label.admin-only {
     border-radius: 16px 16px 0 0;
     max-height: 92vh;
     min-width: 100vw;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 18px;
   }
@@ -1210,7 +1230,8 @@ body.is-admin label.admin-only {
     max-height: 100dvh;
     min-height: 100vh;
     min-height: 100dvh;
-    overflow-y: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
     width: 100vw;
   }
 
@@ -1219,7 +1240,7 @@ body.is-admin label.admin-only {
   .modal.admin-requests-modal .activity-list,
   .modal.password-reset-requests-modal .activity-list {
     flex: 1;
-    overflow: visible;
+    overflow: auto;
   }
 
   .modal.log-modal .activity-item,
@@ -1265,6 +1286,7 @@ body.is-admin label.admin-only {
   .danger-button,
   .admin-only,
   #detailsEditButton,
+  #detailsDeleteButton,
   #deleteReservationButton,
   #printButton,
   .modal-actions,

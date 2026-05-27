@@ -132,6 +132,7 @@ function cacheElements() {
     'detailsMeta',
     'detailsList',
     'detailsCloseButton',
+    'detailsDeleteButton',
     'detailsEditButton',
     'conflictModal',
     'conflictBody',
@@ -207,6 +208,7 @@ function bindStaticEvents() {
   els.agreementCancelButton.addEventListener('click', closeAgreementModal);
   els.agreementSubmitButton.addEventListener('click', submitAgreementReservation);
   els.detailsCloseButton.addEventListener('click', () => els.detailsModal.close());
+  els.detailsDeleteButton.addEventListener('click', requestDeleteFromDetails);
   els.detailsEditButton.addEventListener('click', openEditFromDetails);
   els.conflictCloseButton.addEventListener('click', () => els.conflictModal.close());
   els.conflictOkButton.addEventListener('click', () => els.conflictModal.close());
@@ -820,8 +822,7 @@ function openDetailsModal(event) {
       Organization: record.organization || 'Not provided',
       'Number of People Involved': record.people_involved || 'Not provided',
       'Purpose of Meeting': record.purpose || record.reason || 'Not provided',
-      'Student Name': record.reserved_by_name || 'CSC Officer/Admin',
-      Email: isAdmin() ? (record.account_email || 'Not recorded') : 'Private'
+      'Student Name': record.reserved_by_name || 'CSC Officer/Admin'
     })
     : detailsRows({
       Status: 'Reserved',
@@ -833,6 +834,9 @@ function openDetailsModal(event) {
   els.detailsEditButton.hidden = !canEdit;
   els.detailsEditButton.dataset.eventId = event.id;
   els.detailsEditButton.dataset.eventType = type;
+  els.detailsDeleteButton.hidden = !canDeleteRecord(record, type);
+  els.detailsDeleteButton.dataset.eventId = event.id;
+  els.detailsDeleteButton.dataset.eventType = type;
   els.detailsModal.showModal();
 }
 
@@ -849,6 +853,23 @@ function openEditFromDetails() {
     { start: new Date(record.start_time), end: new Date(record.end_time) },
     { record, type }
   );
+}
+
+function requestDeleteFromDetails() {
+  if (!isAdmin()) {
+    showToast('Unauthorized action. Only CSC Officers/Admins may delete reservations.', 'error');
+    return;
+  }
+
+  const id = els.detailsDeleteButton.dataset.eventId;
+  const type = els.detailsDeleteButton.dataset.eventType || 'reservation';
+  if (!id) return;
+
+  state.pendingDeleteId = id;
+  els.confirmMessage.textContent = type === 'blocked'
+    ? 'Delete this blocked time from the CSC Conference Room schedule?'
+    : 'Delete this reservation from the CSC Conference Room schedule?';
+  els.confirmModal.showModal();
 }
 
 function requestDeleteReservation() {
@@ -890,7 +911,8 @@ async function deleteReservation() {
 
     state.pendingDeleteId = null;
     els.confirmModal.close();
-    els.reservationModal.close();
+    if (els.reservationModal.open) els.reservationModal.close();
+    if (els.detailsModal.open) els.detailsModal.close();
     await loadSchedule();
     refreshCalendar();
     showToast('Schedule slot deleted.', 'success');
@@ -1154,7 +1176,7 @@ function requireReservationAccount() {
 
 function renderProfile() {
   const name = state.profile?.full_name || state.currentUser?.email || 'Guest';
-  els.profileName.textContent = state.profile?.student_number ? `${name} - ${state.profile.student_number}` : name;
+  els.profileName.textContent = name;
   els.profileInitials.textContent = initials(name);
 }
 
