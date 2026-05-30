@@ -1101,6 +1101,8 @@ grant execute on function public.has_active_reservation_block(uuid) to authentic
 revoke execute on function public.set_user_reservation_block(uuid, boolean, timestamptz, text) from public, anon;
 grant execute on function public.set_user_reservation_block(uuid, boolean, timestamptz, text) to authenticated;
 
+notify pgrst, 'reload schema';
+
 -- Starter admin bootstrap:
 -- 1. In the app, create the first account with student number AUP-ADMIN-001 and your chosen password.
 -- 2. Promote only that first account from the Supabase SQL editor:

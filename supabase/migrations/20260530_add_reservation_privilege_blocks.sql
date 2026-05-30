@@ -201,3 +201,5 @@ revoke execute on function public.has_active_reservation_block(uuid) from public
 grant execute on function public.has_active_reservation_block(uuid) to authenticated;
 revoke execute on function public.set_user_reservation_block(uuid, boolean, timestamptz, text) from public, anon;
 grant execute on function public.set_user_reservation_block(uuid, boolean, timestamptz, text) to authenticated;
+
+notify pgrst, 'reload schema';
