@@ -7,7 +7,7 @@
   <title>CORE | Conference Office Reservation Engine</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260530-1">
+  <link rel="stylesheet" href="style.css?v=20260530-2">
 </head>
 <body class="auth-active">
   <section class="auth-screen" id="authScreen">
@@ -119,6 +119,12 @@
         <p id="availabilityDetail">Reservations are automatically confirmed when the slot is free.</p>
       </section>
 
+      <section class="sidebar-section restriction-card" id="reservationBlockNotice" hidden>
+        <span class="section-label">Reservation Privileges Blocked</span>
+        <strong id="reservationBlockTitle">Booking unavailable</strong>
+        <p id="reservationBlockDetail"></p>
+      </section>
+
       <section class="sidebar-section">
         <div class="mini-calendar-header">
           <button class="icon-button" id="miniPrevButton" aria-label="Previous month">&#8249;</button>
@@ -156,6 +162,7 @@
         <button class="secondary-button admin-only" id="adminRequestsButton">Admin Requests</button>
         <button class="secondary-button admin-only" id="passwordResetRequestsButton">Password Resets</button>
         <button class="secondary-button admin-only" id="reservationListButton">Reservation List</button>
+        <button class="secondary-button admin-only" id="accountManagementButton">Account Management</button>
         <button class="secondary-button" id="activityLogButton">Activity Log</button>
         <button class="secondary-button" id="aboutButton">About CORE</button>
         <button class="secondary-button admin-only" id="blockTimeButton">Block Time</button>
@@ -432,6 +439,50 @@
     </article>
   </dialog>
 
+  <dialog class="modal account-management-modal" id="accountManagementModal">
+    <article class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h3>Account Management</h3>
+          <p>Block or restore student reservation privileges.</p>
+        </div>
+        <button class="icon-button" id="accountManagementCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <div class="activity-list" id="accountManagementList"></div>
+    </article>
+  </dialog>
+
+  <dialog class="modal account-restriction-modal" id="accountRestrictionModal">
+    <form class="modal-card" id="accountRestrictionForm">
+      <div class="modal-header">
+        <div>
+          <h3>Block Reservation Privileges</h3>
+          <p id="accountRestrictionStudent">Choose a duration and record the reason.</p>
+        </div>
+        <button type="button" class="icon-button" id="accountRestrictionCloseButton" aria-label="Close">&times;</button>
+      </div>
+      <input type="hidden" id="accountRestrictionUserId">
+      <div class="form-grid">
+        <label>Duration
+          <select id="accountRestrictionDuration" required>
+            <option value="1">1 day</option>
+            <option value="3">3 days</option>
+            <option value="7" selected>7 days</option>
+            <option value="30">30 days</option>
+            <option value="indefinite">Indefinite</option>
+          </select>
+        </label>
+        <label class="full-span">Reason
+          <textarea id="accountRestrictionReason" required rows="4" placeholder="Explain why reservation privileges are being blocked"></textarea>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="accountRestrictionCancelButton">Cancel</button>
+        <button type="submit" class="danger-button">Block Privileges</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="modal temp-password-modal" id="temporaryPasswordModal">
     <article class="modal-card conflict-card">
       <div class="modal-header">
@@ -492,6 +543,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="supabaseClient.js"></script>
-  <script src="script.js?v=20260530-1"></script>
+  <script src="script.js?v=20260530-2"></script>
 </body>
 </html>

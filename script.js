@@ -13,7 +13,8 @@ const SCHEDULE_STATE_KEYS = [
   'blockedTimes',
   'activityLogs',
   'adminRequests',
-  'passwordResetRequests'
+  'passwordResetRequests',
+  'profiles'
 ];
 const EMPTY_ADMIN_REQUESTS =
   '<div class="activity-item"><strong>No pending admin requests</strong><p>Student accounts can still be created from the login page.</p></div>';
@@ -33,6 +34,7 @@ const state = {
   activityLogs: [],
   adminRequests: [],
   passwordResetRequests: [],
+  profiles: [],
   pendingDeleteId: null,
   pendingAgreementFormData: null,
   searchTerm: '',
@@ -73,6 +75,9 @@ function cacheElements() {
     'createReservationButton',
     'availabilityStatus',
     'availabilityDetail',
+    'reservationBlockNotice',
+    'reservationBlockTitle',
+    'reservationBlockDetail',
     'miniCalendar',
     'miniCalendarTitle',
     'miniPrevButton',
@@ -166,6 +171,18 @@ function cacheElements() {
     'reservationListModal',
     'reservationList',
     'reservationListCloseButton',
+    'accountManagementButton',
+    'accountManagementModal',
+    'accountManagementList',
+    'accountManagementCloseButton',
+    'accountRestrictionModal',
+    'accountRestrictionForm',
+    'accountRestrictionUserId',
+    'accountRestrictionStudent',
+    'accountRestrictionDuration',
+    'accountRestrictionReason',
+    'accountRestrictionCloseButton',
+    'accountRestrictionCancelButton',
     'aboutButton',
     'aboutModal',
     'aboutCloseButton',
@@ -241,6 +258,12 @@ function bindStaticEvents() {
   els.reservationListButton.addEventListener('click', openReservationList);
   els.reservationListCloseButton.addEventListener('click', () => els.reservationListModal.close());
   els.reservationList.addEventListener('click', handleReservationListAction);
+  els.accountManagementButton.addEventListener('click', openAccountManagement);
+  els.accountManagementCloseButton.addEventListener('click', () => els.accountManagementModal.close());
+  els.accountManagementList.addEventListener('click', handleAccountManagementAction);
+  els.accountRestrictionForm.addEventListener('submit', submitAccountRestriction);
+  els.accountRestrictionCloseButton.addEventListener('click', closeAccountRestrictionModal);
+  els.accountRestrictionCancelButton.addEventListener('click', closeAccountRestrictionModal);
   els.aboutButton.addEventListener('click', () => els.aboutModal.showModal());
   els.aboutCloseButton.addEventListener('click', () => els.aboutModal.close());
   window.addEventListener('resize', debounce(handleResize, 160));
@@ -390,11 +413,12 @@ async function loadSchedule() {
   }
 
   try {
+    await refreshCurrentProfile();
     const shouldLoadLogs = isAdmin();
     const reservationsQuery = isAdmin()
       ? supabaseClient.from('reservations').select('*').order('start_time', { ascending: true })
       : loadStudentCalendarReservations();
-    const [reservations, blockedTimes, activityLogs, adminRequests, passwordResetRequests] =
+    const [reservations, blockedTimes, activityLogs, adminRequests, passwordResetRequests, profiles] =
       await runSupabaseQueries([
         reservationsQuery,
         supabaseClient.from('blocked_times').select('*').order('start_time', { ascending: true }),
@@ -406,6 +430,9 @@ async function loadSchedule() {
           : null,
         shouldLoadLogs
           ? supabaseClient.from('password_reset_requests').select('*').order('requested_at', { ascending: true })
+          : null,
+        shouldLoadLogs
+          ? supabaseClient.from('profiles').select('*').order('full_name', { ascending: true })
           : null
       ]);
 
@@ -414,11 +441,21 @@ async function loadSchedule() {
       blockedTimes,
       activityLogs,
       adminRequests,
-      passwordResetRequests
+      passwordResetRequests,
+      profiles
     });
   } catch (error) {
     showToast(`Could not load Supabase data: ${error.message}`, 'error');
   }
+}
+
+async function refreshCurrentProfile() {
+  if (!state.currentUser) return;
+  const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', state.currentUser.id).single();
+  if (error || !data) return;
+  state.profile = data;
+  renderProfile();
+  updateAdminVisibility();
 }
 
 async function loadStudentCalendarReservations() {
@@ -544,6 +581,10 @@ function openReservationModal(range, options = {}) {
   const profileName = state.profile?.full_name || state.currentUser?.email || 'Guest';
   const type = normalizeRecordType(options.type);
   const record = options.record;
+  if (type === 'reservation' && !record && isReservationBlocked()) {
+    showToast(getReservationBlockMessage(), 'error');
+    return;
+  }
 
   els.reservationForm.reset();
   els.reservationId.value = record?.id || '';
@@ -1161,7 +1202,11 @@ async function fetchProfile(userId) {
 }
 
 function requireReservationAccount() {
-  if (state.profile) return true;
+  if (state.profile && !isReservationBlocked()) return true;
+  if (state.profile) {
+    showToast(getReservationBlockMessage(), 'error');
+    return false;
+  }
   showToast(`Please login before reserving the ${ROOM_NAME}.`, 'error');
   return false;
 }
@@ -1170,6 +1215,7 @@ function renderProfile() {
   const name = state.profile?.full_name || state.currentUser?.email || 'Guest';
   els.profileName.textContent = name;
   els.profileInitials.textContent = initials(name);
+  renderReservationBlockState();
 }
 
 function updateAdminVisibility() {
@@ -1184,8 +1230,33 @@ function requiresPasswordChange() {
   return state.currentUser?.user_metadata?.must_change_password === true;
 }
 
+function isReservationBlocked(profile = state.profile) {
+  if (!profile || profile.role === 'admin' || !profile.reservation_blocked) return false;
+  if (!profile.reservation_blocked_until) return true;
+  return new Date(profile.reservation_blocked_until) > new Date();
+}
+
+function getReservationBlockMessage(profile = state.profile) {
+  const until = profile?.reservation_blocked_until
+    ? ` until ${formatDateTime(new Date(profile.reservation_blocked_until))}`
+    : '';
+  return `Your reservation privileges have been blocked${until}. Please contact a CSC Officer/Admin.`;
+}
+
+function renderReservationBlockState() {
+  const isBlocked = isReservationBlocked();
+  els.reservationBlockNotice.hidden = !isBlocked;
+  els.createReservationButton.disabled = isBlocked;
+  if (!isBlocked) return;
+
+  els.reservationBlockTitle.textContent = state.profile?.reservation_blocked_until
+    ? `Blocked until ${formatDateTime(new Date(state.profile.reservation_blocked_until))}`
+    : 'Blocked indefinitely';
+  els.reservationBlockDetail.textContent = state.profile?.reservation_block_reason || 'Please contact a CSC Officer/Admin for details.';
+}
+
 function canEditRecord(record) {
-  return isAdmin() || record.created_by === state.profile?.id;
+  return isAdmin() || (!isReservationBlocked() && record.created_by === state.profile?.id);
 }
 
 function canEditRecordType(record, type = 'reservation') {
@@ -1324,6 +1395,122 @@ function shiftMiniCalendar(months) {
     1
   );
   renderMiniCalendar();
+}
+
+function openAccountManagement() {
+  if (!isAdmin()) {
+    showToast('Only CSC Officers/Admins can manage account restrictions.', 'error');
+    return;
+  }
+  renderAccountManagement();
+  els.accountManagementModal.showModal();
+}
+
+function renderAccountManagement() {
+  els.accountManagementList.innerHTML = '';
+  if (!state.profiles.length) {
+    els.accountManagementList.innerHTML = '<div class="activity-item"><strong>No accounts found</strong><p>Student accounts will appear here after registration.</p></div>';
+    return;
+  }
+
+  state.profiles.forEach((profile) => {
+    const isBlocked = isReservationBlocked(profile);
+    const item = document.createElement('div');
+    item.className = 'activity-item request-item';
+    const status = profile.role === 'admin'
+      ? 'Admin account'
+      : isBlocked
+        ? profile.reservation_blocked_until
+          ? `Blocked until ${formatDateTime(new Date(profile.reservation_blocked_until))}`
+          : 'Blocked indefinitely'
+        : 'Active';
+    const actionButton = profile.role === 'admin'
+      ? ''
+      : isBlocked
+        ? `<button type="button" class="secondary-button" data-account-action="block" data-account-id="${profile.id}">Change Block</button>
+           <button type="button" class="secondary-button" data-account-action="unblock" data-account-id="${profile.id}">Restore Privileges</button>`
+        : `<button type="button" class="danger-button" data-account-action="block" data-account-id="${profile.id}">Block Privileges</button>`;
+    item.innerHTML = `
+      <strong>${escapeHtml(profile.full_name || 'Unnamed student')}</strong>
+      <p>Student number: ${escapeHtml(profile.student_number || 'Not recorded')}</p>
+      <p>Department: ${escapeHtml(profile.department || 'Not provided')}</p>
+      <p>Status: ${escapeHtml(status)}</p>
+      ${profile.reservation_block_reason ? `<p>Reason: ${escapeHtml(profile.reservation_block_reason)}</p>` : ''}
+      ${actionButton ? `<div class="request-actions">${actionButton}</div>` : ''}
+    `;
+    els.accountManagementList.appendChild(item);
+  });
+}
+
+function handleAccountManagementAction(event) {
+  const button = event.target.closest('[data-account-action]');
+  if (!button || !isAdmin()) return;
+  const profile = state.profiles.find((item) => item.id === button.dataset.accountId);
+  if (!profile || profile.role === 'admin') return;
+
+  if (button.dataset.accountAction === 'unblock') {
+    restoreReservationPrivileges(profile);
+    return;
+  }
+
+  els.accountRestrictionForm.reset();
+  els.accountRestrictionUserId.value = profile.id;
+  els.accountRestrictionStudent.textContent = `Block reservation privileges for ${profile.full_name || profile.student_number}.`;
+  els.accountRestrictionReason.value = profile.reservation_block_reason || '';
+  els.accountRestrictionModal.showModal();
+}
+
+function closeAccountRestrictionModal() {
+  els.accountRestrictionForm.reset();
+  els.accountRestrictionModal.close();
+}
+
+async function submitAccountRestriction(event) {
+  event.preventDefault();
+  if (!isAdmin()) return;
+  const duration = els.accountRestrictionDuration.value;
+  const reason = els.accountRestrictionReason.value.trim();
+  if (!reason) {
+    showToast('A reason is required before blocking reservation privileges.', 'error');
+    return;
+  }
+
+  const blockedUntil = duration === 'indefinite'
+    ? null
+    : new Date(Date.now() + Number(duration) * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await supabaseClient.rpc('set_user_reservation_block', {
+    p_user_id: els.accountRestrictionUserId.value,
+    p_blocked: true,
+    p_blocked_until: blockedUntil,
+    p_reason: reason
+  });
+  if (error) {
+    showToast(error.message, 'error');
+    return;
+  }
+
+  closeAccountRestrictionModal();
+  await loadSchedule();
+  renderAccountManagement();
+  showToast('Reservation privileges blocked.', 'success');
+}
+
+async function restoreReservationPrivileges(profile) {
+  if (!window.confirm(`Restore reservation privileges for ${profile.full_name || profile.student_number}?`)) return;
+  const { error } = await supabaseClient.rpc('set_user_reservation_block', {
+    p_user_id: profile.id,
+    p_blocked: false,
+    p_blocked_until: null,
+    p_reason: 'Reservation privileges restored by admin.'
+  });
+  if (error) {
+    showToast(error.message, 'error');
+    return;
+  }
+
+  await loadSchedule();
+  renderAccountManagement();
+  showToast('Reservation privileges restored.', 'success');
 }
 
 function openAdminRequests() {

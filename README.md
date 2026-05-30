@@ -16,6 +16,7 @@ CORE is a CSC Conference Office scheduling system for Adventist University of th
 - Student limits: maximum 5 hours per reservation and 2 reservations per Monday-Sunday week
 - No duplicate student-number accounts
 - Admin-handled forgotten-password requests through a Supabase Edge Function
+- Admin-managed temporary or indefinite reservation-privilege blocks with audit history
 - One-room scheduling only, with no room/resource selector
 - No-overlap validation in both frontend JavaScript and database triggers
 - Current availability indicator: Available Now or In Use Until
@@ -117,6 +118,8 @@ where student_number = 'aupadmin001';
 The connected Supabase project already has this starter admin account. After the starter admin exists, future admin accounts must be requested from the create-account page and approved by an existing admin. Students cannot directly make themselves admins.
 
 Students can view reserved/available time slots, create confirmed reservations when the slot is free, view full details for their own reservations only, and delete only reservations created by their own account. CSC Officers/Admins can create, edit, move, resize, override student limits, or delete any reservation, manage blocked times, and view activity history.
+
+Admins can also block a student's reservation privileges for 1, 3, 7, or 30 days, or indefinitely. Blocked students can still sign in, view schedules, and delete their own reservations, but cannot create or edit reservations. Apply `supabase/migrations/20260530_add_reservation_privilege_blocks.sql` to enable this feature in the live Supabase project.
 
 ## Forgotten Passwords
 
