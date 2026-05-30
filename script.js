@@ -6,7 +6,7 @@ const PASSWORD_UPDATE_TIMEOUT_MS = 15000;
 const AUTH_EMAIL_DOMAIN = 'aup.edu.ph';
 const MOBILE_BREAKPOINT = 768;
 const MOBILE_VIEW_OPTIONS = new Set(['timeGridWeek', 'dayGridMonth', 'multiMonthYear', 'listWeek']);
-const ROOM_NAME = 'CSC Conference Room';
+const ROOM_NAME = 'CSC Conference Office';
 const ACTIVE_STATUSES = ['confirmed', 'completed', 'blocked'];
 const SCHEDULE_STATE_KEYS = [
   'reservations',
@@ -501,7 +501,7 @@ function getVisibleEvents() {
     .filter((blocked) => matchesSearch(blocked, searchTerm))
     .map((blocked) => ({
       id: blocked.id,
-      title: isAdmin() ? (blocked.title || 'Blocked time') : 'Reserved - CSC Conference Room',
+      title: isAdmin() ? (blocked.title || 'Blocked time') : `Reserved - ${ROOM_NAME}`,
       start: blocked.start_time,
       end: blocked.end_time,
       classNames: ['event-blocked'],
@@ -1162,7 +1162,7 @@ async function fetchProfile(userId) {
 
 function requireReservationAccount() {
   if (state.profile) return true;
-  showToast('Please login before reserving the CSC Conference Room.', 'error');
+  showToast(`Please login before reserving the ${ROOM_NAME}.`, 'error');
   return false;
 }
 
@@ -1226,8 +1226,8 @@ function getDetailsActionData(button) {
 
 function getDeleteConfirmMessage(type) {
   return normalizeRecordType(type) === 'blocked'
-    ? 'Delete this blocked time from the CSC Conference Room schedule?'
-    : 'Delete this reservation from the CSC Conference Room schedule?';
+    ? `Delete this blocked time from the ${ROOM_NAME} schedule?`
+    : `Delete this reservation from the ${ROOM_NAME} schedule?`;
 }
 
 function getReservationDisplayTitle(record) {
@@ -1270,7 +1270,7 @@ function updateAvailability() {
   if (active) {
     card.classList.add('busy');
     els.availabilityStatus.textContent = `In Use Until ${formatTime(new Date(active.end_time))}`;
-    els.availabilityDetail.textContent = isAdmin() ? (active.title || active.reason || 'Conference room unavailable') : `${ROOM_NAME} is reserved.`;
+    els.availabilityDetail.textContent = isAdmin() ? (active.title || active.reason || 'Conference office unavailable') : `${ROOM_NAME} is reserved.`;
   } else {
     card.classList.remove('busy');
     els.availabilityStatus.textContent = 'Available Now';
@@ -1545,7 +1545,7 @@ function handleReservationListAction(event) {
   }
 
   state.pendingDeleteId = reservation.id;
-  els.confirmMessage.textContent = 'Delete this reservation from the CSC Conference Room schedule?';
+  els.confirmMessage.textContent = `Delete this reservation from the ${ROOM_NAME} schedule?`;
   els.confirmModal.showModal();
 }
 

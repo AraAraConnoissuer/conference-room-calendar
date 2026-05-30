@@ -1,4 +1,4 @@
--- CORE Conference Room Reservation Engine
+-- CORE Conference Office Reservation Engine
 -- Run this file in the Supabase SQL editor after creating your project.
 
 create extension if not exists pgcrypto;
@@ -153,7 +153,7 @@ insert into public.settings (setting_name, setting_value)
 values
   ('max_student_booking_hours', '5'),
   ('max_student_bookings_per_week', '2'),
-  ('room_name', 'CSC Conference Room')
+  ('room_name', 'CSC Conference Office')
 on conflict (setting_name) do nothing;
 
 create or replace function public.set_updated_at()
@@ -309,7 +309,7 @@ begin
   end if;
 
   if not (new.accepted_rules and new.accepted_data_privacy) then
-    raise exception 'CSC Conference Room Rules and Agreement must be accepted before submitting your reservation.' using errcode = '22023';
+    raise exception 'CSC Conference Office Terms of Use and Code of Conduct must be accepted before submitting your reservation.' using errcode = '22023';
   end if;
 
   if tg_op = 'INSERT' then
@@ -374,7 +374,7 @@ begin
       v_org,
       new.id,
       v_action,
-      format('%s created a reservation for the CSC Conference Room on %s, from %s to %s.',
+      format('%s created a reservation for the CSC Conference Office on %s, from %s to %s.',
         coalesce(v_student_name, 'A student'),
         to_char(v_start, 'FMMonth DD, YYYY'),
         to_char(v_start, 'FMHH12:MI AM'),
@@ -408,7 +408,7 @@ begin
       v_org,
       new.id,
       v_action,
-      format('%s updated a reservation for the CSC Conference Room on %s, from %s to %s.',
+      format('%s updated a reservation for the CSC Conference Office on %s, from %s to %s.',
         coalesce(v_student_name, 'A student'),
         to_char(v_start, 'FMMonth DD, YYYY'),
         to_char(v_start, 'FMHH12:MI AM'),
@@ -432,7 +432,7 @@ begin
       old.organization,
       null,
       'reservation_deleted',
-      format('%s deleted a reservation for the CSC Conference Room on %s, from %s to %s.',
+      format('%s deleted a reservation for the CSC Conference Office on %s, from %s to %s.',
         coalesce(old.reserved_by_name, 'A student'),
         to_char(old.start_time, 'FMMonth DD, YYYY'),
         to_char(old.start_time, 'FMHH12:MI AM'),
@@ -499,7 +499,7 @@ begin
       v_reservation.organization,
       new.reservation_id,
       'rules_agreement_accepted',
-      coalesce(v_reservation.reserved_by_name, 'A student') || ' accepted the CSC Conference Room Rules and Agreement.',
+      coalesce(v_reservation.reserved_by_name, 'A student') || ' accepted the CSC Conference Office Terms of Use and Code of Conduct.',
       new.user_id,
       coalesce(v_actor.full_name, 'Unknown user'),
       coalesce(v_actor.role, 'student'),

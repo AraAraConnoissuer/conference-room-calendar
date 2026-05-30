@@ -1,6 +1,6 @@
-# CORE: Conference Room Reservation Engine
+# CORE: Conference Office Reservation Engine
 
-CORE is a CSC Conference Room scheduling system for Adventist University of the Philippines. Students can reserve available slots after logging in, while CSC Officers/Admins control reservations, user access, privacy, blocked times, and activity logs.
+CORE is a CSC Conference Office scheduling system for Adventist University of the Philippines. Students can reserve available slots after logging in, while CSC Officers/Admins control reservations, user access, privacy, blocked times, and activity logs.
 
 ## Features
 
@@ -12,7 +12,7 @@ CORE is a CSC Conference Room scheduling system for Adventist University of the 
 - Supabase PostgreSQL tables, RLS policies, activity logs, and overlap-prevention triggers
 - Student and CSC Officer/Admin role behavior with admin approval for new admin accounts
 - Privacy-aware student calendar display that hides other students' private reservation details
-- Required CSC rules, data privacy, and chain-of-command agreement before student bookings
+- Required CSC Conference Office terms and data privacy agreement before student bookings
 - Student limits: maximum 5 hours per reservation and 2 reservations per Monday-Sunday week
 - No duplicate student-number accounts
 - Admin-handled forgotten-password requests through a Supabase Edge Function
@@ -135,7 +135,7 @@ The temporary password is not stored in the database. The admin should give it t
 
 ## Scheduling Rules
 
-- One conference room only
+- One conference office only
 - No pending, approved, or rejected statuses
 - Reservations are automatically confirmed if valid
 - No past reservations
@@ -161,7 +161,7 @@ The same rule is enforced in `schema.sql` with PostgreSQL triggers, so users can
 
 ## Mobile Notes
 
-Desktop and phones default to week view. Day view is removed from the UI. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and submenu panels use the full screen. If touch drag selection is difficult on a device, tap a time slot or use `+ CSC Conference Room`, then manually adjust the date and time fields.
+Desktop and phones default to week view. Day view is removed from the UI. The sidebar becomes a hamburger menu, search expands on demand, forms stack vertically, and submenu panels use the full screen. If touch drag selection is difficult on a device, tap a time slot or use `+ CSC Conference Office`, then manually adjust the date and time fields.
 
 Recommended test widths:
 
@@ -196,8 +196,8 @@ CORE should be deployed from an official CSC hosting account whenever possible, 
 
 Official turnover details:
 
-- System name: CORE - Conference Room Reservation Engine
-- System purpose: secure scheduling and monitoring for the CSC Conference Room
+- System name: CORE - Conference Office Reservation Engine
+- System purpose: secure scheduling and monitoring for the CSC Conference Office
 - Developer/s: Lanz Ordoña
 - Turnover date: May 27, 2026
 - CSC representative: assigned Central Student Council officer
@@ -205,15 +205,14 @@ Official turnover details:
 
 Initial publishing and maintenance of the CORE web application shall be handled by Lanz Ordoña unless officially transferred to another assigned CSC technical officer.
 
-## Data Privacy and Chain of Command
+## Data Privacy and Terms of Use
 
-Reservation information is used only for CSC Conference Room scheduling, reservation verification, documentation, and administrative monitoring. Full private reservation details are visible only to the owning student and authorized CSC Officers/Admins.
+Reservation information is used only for CSC Conference Office scheduling, reservation verification, documentation, and administrative monitoring. Full private reservation details are visible only to the owning student and authorized CSC Officers/Admins.
 
 Students must agree to:
 
-- the CSC Conference Room Rules and Agreement
+- the CSC Conference Office Terms of Use and Code of Conduct
 - the Data Privacy Agreement
-- the proper CSC process and chain of command
 
 ## Required Supabase Update
 
